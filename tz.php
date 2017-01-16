@@ -285,12 +285,15 @@ $http_worker->onMessage = function($connection, $data) {
 		$hdPercent = round ($du / $dt * 100 , 2);
 		
 		$strs = @file("/proc/net/dev"); 
+		$js = '';
 		for ($i=2; $i<count($strs);$i++) {
 			preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
 			$NetOutSpeed[$i] = $info[10][0];
 			$NetInputSpeed[$i] = $info[2][0];
 			$NetInput[$i] = formatsize($info[2][0]);
 			$NetOut[$i]  = formatsize($info[10][0]);
+			$js .= 'var OutSpeed'.$i.'='.$NetOutSpeed[$i].';'."\n";
+			$js .= 'var InputSpeed'.$i.'='.$NetInputSpeed[$i].';'."\n";
 		}
 		$head = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">
 <html xmlns=\"http://www.w3.org/1999/xhtml\">
@@ -335,14 +338,7 @@ function caola_test(server_test) {
 }
 
 $(document).ready(function(){getJSONData();});
-var OutSpeed2=".$NetOutSpeed[2].";
-var OutSpeed3=".$NetOutSpeed[3].";
-var OutSpeed4=".$NetOutSpeed[4].";
-var OutSpeed5=".$NetOutSpeed[5].";
-var InputSpeed2=".$NetInputSpeed[2].";
-var InputSpeed3=".$NetInputSpeed[3].";
-var InputSpeed4=".$NetInputSpeed[4].";
-var InputSpeed5=".$NetInputSpeed[5].";
+".$js."
 
 function getJSONData()
 {
@@ -546,7 +542,7 @@ function ForDight(Dight,How)
 	<td width="37%" colspan="3"><span id="uptime">'.$uptime.'</span></td>
   </tr>
   <tr>
-	<td width="13%">CPU型号 [2核]</td>
+	<td width="13%">CPU型号 ['.$cpuinfo['cpu_num'].'核]</td>
 	<td width="87%" colspan="5">'.$cpuinfo['cpu_model']['0']['model'].' | 频率:'.$cpuinfo['cpu_mhz']['0'].' | 二级缓存:'.$cpuinfo['cpu_cache']['0'].' | Bogomips:'.$cpuinfo['cpu_bogomips']['0'].' × '.$cpuinfo['cpu_num'].'</td>
   </tr>
   <tr>
