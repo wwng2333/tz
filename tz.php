@@ -286,12 +286,17 @@ $http_worker->onMessage = function($connection, $data) {
 		
 		$strs = @file("/proc/net/dev"); 
 		$js = '';
+		$ajax = '';
 		for ($i=2; $i<count($strs);$i++) {
 			preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
 			$NetOutSpeed[$i] = $info[10][0];
 			$NetInputSpeed[$i] = $info[2][0];
 			$NetInput[$i] = formatsize($info[2][0]);
 			$NetOut[$i]  = formatsize($info[10][0]);
+			$ajax .= '$(\"#NetOut'.$i.'").html(dataJSON.NetOut'.$i.');'."\n";
+			$ajax .= '$(\"#NetInput'.$i.'").html(dataJSON.NetInput'.$i.');'."\n";
+			$ajax .= '$(\"#NetOutSpeed'.$i.'").html(ForDight((dataJSON.NetOutSpeed'.$i.'-OutSpeed'.$i.'),3));	OutSpeed'.$i.'=dataJSON.NetOutSpeed'.$i.';'."\n";
+			$ajax .= '$(\"#NetInputSpeed'.$i.'").html(ForDight((dataJSON.NetInputSpeed'.$i.'-InputSpeed'.$i.'),3));	InputSpeed'.$i.'=dataJSON.NetInputSpeed'.$i.';'."\n";
 			$js .= 'var OutSpeed'.$i.'='.$NetOutSpeed[$i].';'."\n";
 			$js .= 'var InputSpeed'.$i.'='.$NetInputSpeed[$i].';'."\n";
 		}
