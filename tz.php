@@ -293,10 +293,10 @@ $http_worker->onMessage = function($connection, $data) {
 			$NetInputSpeed[$i] = $info[2][0];
 			$NetInput[$i] = formatsize($info[2][0]);
 			$NetOut[$i]  = formatsize($info[10][0]);
-			$ajax .= '$(\"#NetOut'.$i.'").html(dataJSON.NetOut'.$i.');'."\n";
-			$ajax .= '$(\"#NetInput'.$i.'").html(dataJSON.NetInput'.$i.');'."\n";
-			$ajax .= '$(\"#NetOutSpeed'.$i.'").html(ForDight((dataJSON.NetOutSpeed'.$i.'-OutSpeed'.$i.'),3));	OutSpeed'.$i.'=dataJSON.NetOutSpeed'.$i.';'."\n";
-			$ajax .= '$(\"#NetInputSpeed'.$i.'").html(ForDight((dataJSON.NetInputSpeed'.$i.'-InputSpeed'.$i.'),3));	InputSpeed'.$i.'=dataJSON.NetInputSpeed'.$i.';'."\n";
+			$ajax .= '$("#NetOut'.$i.'").html(dataJSON.NetOut'.$i.');'."\n";
+			$ajax .= '$("#NetInput'.$i.'").html(dataJSON.NetInput'.$i.');'."\n";
+			$ajax .= '$("#NetOutSpeed'.$i.'").html(ForDight((dataJSON.NetOutSpeed'.$i.'-OutSpeed'.$i.'),3));	OutSpeed'.$i.'=dataJSON.NetOutSpeed'.$i.';'."\n";
+			$ajax .= '$("#NetInputSpeed'.$i.'").html(ForDight((dataJSON.NetInputSpeed'.$i.'-InputSpeed'.$i.'),3));	InputSpeed'.$i.'=dataJSON.NetInputSpeed'.$i.';'."\n";
 			$js .= 'var OutSpeed'.$i.'='.$NetOutSpeed[$i].';'."\n";
 			$js .= 'var InputSpeed'.$i.'='.$NetInputSpeed[$i].';'."\n";
 		}
