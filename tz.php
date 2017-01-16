@@ -176,14 +176,12 @@ function rt() {
 	$return['swapPercent'] = round(($meminfo['SwapTotal'] - $meminfo['SwapFree']) / $meminfo['SwapTotal'] * 100, 2);
 	$return['barswapPercent'] = $return['swapPercent'].'%';
 	$return['corestat'] = corestat();
-	for($x=2;$x<=10;$x++) {
+	for($x=2;$x<=count($strs);$x++) {
 		if(isset($NetOut[$x])) {
 			$return['NetOut'.$x] = $NetOut[$x];
 			$return['NetInput'.$x] = $NetInput[$x];
-			#if($x<5) {
-				$return['NetOutSpeed'.$x] = $NetOutSpeed[$x];
-				$return['NetInputSpeed'.$x] = $NetInputSpeed[$x];
-			#}
+			$return['NetOutSpeed'.$x] = $NetOutSpeed[$x];
+			$return['NetInputSpeed'.$x] = $NetInputSpeed[$x];
 		}
 	}
 	return $return;
