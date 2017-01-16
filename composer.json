@@ -1,0 +1,6 @@
+{
+    "name"  : "wwng2333/tz",
+    "require": {
+        "workerman/workerman" : ">=3.3.0"
+    }
+}
