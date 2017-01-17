@@ -2,6 +2,9 @@
 use Workerman\Worker;
 require_once __DIR__ . '/vendor/autoload.php';
 
+$http_worker = new Worker("http://0.0.0.0:80");
+$http_worker->count = 8;
+
 function Check_Third_Pard($name) {
 	if(get_extension_funcs($name) == false) {
 		return '<font color="red">×</font>';
@@ -226,12 +229,6 @@ function corestat() {
 	$data = GetCpuPercentages($stat1, $stat2);
 	return $data['cpu0']['user']."%us,  ".$data['cpu0']['sys']."%sy,  ".$data['cpu0']['nice']."%ni, ".$data['cpu0']['idle']."%id,  ".$data['cpu0']['iowait']."%wa,  ".$data['cpu0']['irq']."%irq,  ".$data['cpu0']['softirq']."%softirq";
 }
-
-// 创建一个Worker监听2345端口，使用http协议通讯
-$http_worker = new Worker("http://0.0.0.0:2345");
-
-// 启动2个进程对外提供服务
-$http_worker->count = 2;
 
 $http_worker->onMessage = function($connection, $data) {
 	if(isset($data['get']['act'])) {
