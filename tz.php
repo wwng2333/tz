@@ -477,6 +477,8 @@ function ForDight(Dight,How)
 			$sqlite .= "&nbsp; 版本： ".@sqlite_libversion();
 		}
 	}
+	
+	if($data['server']['SERVER_PORT'] == '') $data['server']['SERVER_PORT'] = 80;
 
 	$test = $head.'
 <!--服务器相关参数-->
