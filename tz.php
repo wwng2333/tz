@@ -478,7 +478,7 @@ function ForDight(Dight,How)
 		}
 	}
 	
-	if($data['server']['SERVER_PORT'] == '') $data['server']['SERVER_PORT'] = 80;
+	if(!isset($data['server']['SERVER_PORT'])) $data['server']['SERVER_PORT'] = 80;
 
 	$test = $head.'
 <!--服务器相关参数-->
