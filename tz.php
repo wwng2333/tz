@@ -408,7 +408,6 @@ function ForDight(Dight,How)
 			<th class=\"w_top\"><a href=\"#w_module_other\">第三方组件</a></th>
 			<th class=\"w_top\"><a href=\"#w_db\">数据库支持</a></th>
 			<th class=\"w_top\"><a href=\"#w_performance\">性能检测</a></th>
-			<th class=\"w_top\"><a href=\"#w_function\">函数检测</a></th>
 			<th class=\"w_top\"><a href=\"https://github.com/wwng2333/tz\">探针下载</a></th>
 		</tr>
 	</table>";
