@@ -231,6 +231,7 @@ function corestat() {
 }
 
 $http_worker->onMessage = function($connection, $data) {
+	echo json_encode($data)."\n";
 	if(isset($data['get']['act'])) {
 		switch($data['get']['act']) {
 			case 'integer_test':
@@ -398,16 +399,18 @@ function ForDight(Dight,How)
 </head>
 <body>
 <div id=\"page\">
-<table>
+	<table>
 		<tr>
-		<th class=\"w_logo\">雅黑PHP探针</th>
-		<th class=\"w_top\"><a href=\"#w_php\">PHP参数</a></th>
-		<th class=\"w_top\"><a href=\"#w_module\">组件支持</a></th>
-		<th class=\"w_top\"><a href=\"#w_module_other\">第三方组件</a></th>
-		<th class=\"w_top\"><a href=\"#w_db\">数据库支持</a></th>
-		<th class=\"w_top\"><a href=\"#w_performance\">性能检测</a></th>
-	</tr>
-</table>";
+			<th class=\"w_logo\">雅黑PHP探针</th>
+			<th class=\"w_top\"><a href=\"#w_php\">PHP参数</a></th>
+			<th class=\"w_top\"><a href=\"#w_module\">组件支持</a></th>
+			<th class=\"w_top\"><a href=\"#w_module_other\">第三方组件</a></th>
+			<th class=\"w_top\"><a href=\"#w_db\">数据库支持</a></th>
+			<th class=\"w_top\"><a href=\"#w_performance\">性能检测</a></th>
+			<th class=\"w_top\"><a href=\"#w_function\">函数检测</a></th>
+			<th class=\"w_top\"><a href=\"https://github.com/wwng2333/tz\">探针下载</a></th>
+		</tr>
+	</table>";
 
 	$cpuinfo = cpuinfo();
 	$meminfo = meminfo();
@@ -493,20 +496,30 @@ function ForDight(Dight,How)
 	<td colspan="3">'.php_uname().'</td>
   </tr>
   <tr>
+	<td>浏览器 UserAgent</td>
+	<td colspan="3">'.$data['server']['HTTP_USER_AGENT'].'</td>
+  </tr>
+  <tr>
 	<td width="13%">服务器操作系统</td>
 	<td width="37%">'.$os[0].' &nbsp;内核版本：'.$kernel.'</td>
 	<td width="13%">服务器解译引擎</td>
 	<td width="37%">'.$data['server']['SERVER_SOFTWARE'].'</td>
   </tr>
   <tr>
-		<td>服务器主机名</td>
-		<td>'.$hostname.'</td>
+		<td>服务器语言</td>
+		<td>'.$data['server']['HTTP_ACCEPT_LANGUAGE'].'</td>
 		<td>服务器端口</td>
 		<td>'.$data['server']['SERVER_PORT'].' @ '.$data['server']['SERVER_PROTOCOL'].'</td>
   </tr>
   <tr>
+		<td>服务器主机名</td>
+		<td>'.str_replace("\n", '', `hostname`).'</td>
 		<td>绝对路径</td>
 		<td>'.getcwd().'</td>
+	</tr>
+  <tr>
+		<td>管理员邮箱</td>
+		<td></td>
 		<td>探针路径</td>
 		<td>'.str_replace('\\', '/', __FILE__).'</td>
 	</tr>
@@ -891,8 +904,7 @@ function ForDight(Dight,How)
 	';
 		$connection->send($test);
 	}
-	echo date('c').' '.$data['server']['REMOTE_ADDR'].' '.$data['server']['REQUEST_METHOD'].' '.$data['server']['REQUEST_URI']."\n";
-	};
+};
 
 // 运行worker
 Worker::runAll();
