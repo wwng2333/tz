@@ -398,6 +398,7 @@ function ForDight(Dight,How)
 </script>
 </head>
 <body>
+<a name=\"w_top\"></a>
 <div id=\"page\">
 	<table>
 		<tr>
@@ -599,6 +600,7 @@ function ForDight(Dight,How)
   </tr>
 </table>
 
+<a name="w_php"></a>
 <table>
   <tr><th colspan="4">PHP相关参数</th></tr>
   <tr>
@@ -720,6 +722,7 @@ function ForDight(Dight,How)
 		</tr>
 </table>
 	
+<a name="w_module"></a>
 <!--组件信息-->
 <table>
 	  <tr><th colspan="4" >组件支持</th></tr>
@@ -779,6 +782,7 @@ function ForDight(Dight,How)
 	  </tr>
 </table>
 	
+<a name="w_module_other"></a>
 <table>
 	  <tr><th colspan="4" >第三方组件</th></tr>
 	  <tr>
@@ -801,6 +805,7 @@ function ForDight(Dight,How)
 	  </tr>
 </table>
 
+<a name="w_db"></a>
 <!--数据库支持-->
 <table>
 	  <tr><th colspan="4">数据库支持</th></tr>
@@ -830,6 +835,7 @@ function ForDight(Dight,How)
 	  </tr>
 </table>
 
+<a name="w_performance"></a>
 <table>
 	  <tr><th colspan="5">服务器性能检测</th></tr>
 	  <tr align="center">
