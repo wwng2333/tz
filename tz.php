@@ -17,22 +17,24 @@ function writeover($filename, $data, $method = 'w', $chmod = 0) {
 }
 
 function count_online_num($time, $ip) {
- 	$fileCount = 'online.json';
-	$gap = 60; //一分钟
-	if (!file_exists($fileCount)) {
-		$arr[$ip] = $time;
-		writeover($fileCount, json_encode($arr), 'w', 1);
-		return 1;
-	} else {
-		$json = file_get_contents($fileCount);
-		$arr = json_decode($json,true);
-		$arr[$ip] = $time;
-		foreach($arr as $a_ip => $a_time) {
-			if($time - $a_time > $gap) unset($arr[$a_ip]);
+	if($ip != '') {
+		$fileCount = 'online.json';
+		$gap = 60; //一分钟
+		if (!file_exists($fileCount)) {
+			$arr[$ip] = $time;
+			writeover($fileCount, json_encode($arr), 'w', 1);
+			return 1;
+		} else {
+			$json = file_get_contents($fileCount);
+			$arr = json_decode($json,true);
+			$arr[$ip] = $time;
+			foreach($arr as $a_ip => $a_time) {
+				if($time - $a_time > $gap) unset($arr[$a_ip]);
+			}
+			writeover($fileCount, json_encode($arr), 'w', 1);
 		}
-		writeover($fileCount, json_encode($arr), 'w', 1);
+		return count($arr);
 	}
-	return count($arr);
 }
 
 function Check_Third_Pard($name) {
