@@ -162,8 +162,7 @@ function isfun($funName = '') {
 	return (false !== function_exists($funName)) ? '<font color="green">√</font>' : '<font color="red">×</font>';
 }
 
-function rt() {
-	global $data;
+function rt($client_ip) {
 	$meminfo = meminfo();
 	$dt = round(@disk_total_space(".")/(1024*1024*1024),3); //总
 	$df = round(@disk_free_space(".")/(1024*1024*1024),3); //可用
@@ -218,7 +217,7 @@ function rt() {
 			$return['NetInputSpeed'.$x] = $NetInputSpeed[$x];
 		}
 	}
-	$return['online_num'] = count_online_num(time(), $date['server']['REMOTE_ADDR']);
+	$return['online_num'] = count_online_num(time(), $client_ip);
 	return $return;
 }
 
@@ -280,7 +279,7 @@ $http_worker->onMessage = function($connection, $data) {
 	}
 
 	if(isset($data['get']['act']) and $data['get']['act'] == 'rt') {
-		$json = htmlspecialchars($data['get']['callback']).'('.json_encode(rt()).')';
+		$json = htmlspecialchars($data['get']['callback']).'('.json_encode(rt($date['server']['REMOTE_ADDR'])).')';
 		$connection->send($json);
 	} elseif(strstr($data['server']['REQUEST_URI'], 'phpinfo')) {
 		$connection->send('<pre>'.`php -i`.'</pre>');
