@@ -2,8 +2,9 @@
 use Workerman\Worker;
 require_once __DIR__ . '/vendor/autoload.php';
 
+Worker::$stdoutFile = 'tz.log';
 $http_worker = new Worker("http://0.0.0.0:80");
-$http_worker->count = 8;
+$http_worker->count = 5;
 
 function Check_Third_Pard($name) {
 	if(get_extension_funcs($name) == false) {
