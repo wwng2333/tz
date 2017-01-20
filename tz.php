@@ -6,6 +6,35 @@ Worker::$stdoutFile = 'tz.log';
 $http_worker = new Worker("http://0.0.0.0:80");
 $http_worker->count = 5;
 
+function writeover($filename, $data, $method = 'w', $chmod = 0) {
+	$handle = fopen($filename, $method);
+	!handle && die("文件打开失败");
+	flock($handle, LOCK_EX);
+	fwrite($handle, $data);
+	flock($handle, LOCK_UN);
+	fclose($handle);
+	$chmod && @chmod($filename, 0777);
+}
+
+function count_online_num($time, $ip) {
+ 	$fileCount = 'online.json';
+	$gap = 60; //一分钟
+	if (!file_exists($fileCount)) {
+		$arr[$ip] = $time;
+		writeover($fileCount, json_encode($arr), 'w', 1);
+		return 1;
+	} else {
+		$json = file_get_contents($fileCount);
+		$arr = json_decode($json,true);
+		$arr[$ip] = $time;
+		foreach($arr as $a_ip => $a_time) {
+			if($time - $a_time > $gap) unset($arr[$a_ip]);
+		}
+		writeover($fileCount, json_encode($arr), 'w', 1);
+	}
+	return count($arr);
+}
+
 function Check_Third_Pard($name) {
 	if(get_extension_funcs($name) == false) {
 		return '<font color="red">×</font>';
@@ -134,6 +163,7 @@ function isfun($funName = '') {
 }
 
 function rt() {
+	global $data;
 	$meminfo = meminfo();
 	$dt = round(@disk_total_space(".")/(1024*1024*1024),3); //总
 	$df = round(@disk_free_space(".")/(1024*1024*1024),3); //可用
@@ -188,6 +218,7 @@ function rt() {
 			$return['NetInputSpeed'.$x] = $NetInputSpeed[$x];
 		}
 	}
+	$return['online_num'] = count_online_num(time(), $date['server']['REMOTE_ADDR']);
 	return $return;
 }
 
@@ -394,6 +425,7 @@ function ForDight(Dight,How)
 	$(\"#barmemCachedPercent\").width(dataJSON.barmemCachedPercent);
 	$(\"#barswapPercent\").width(dataJSON.barswapPercent);
 	$(\"#corestat\").html(dataJSON.corestat);
+	$(\"#online_num\").html(dataJSON.online_num);
 ".$ajax."
 }
 </script>
@@ -519,8 +551,8 @@ function ForDight(Dight,How)
 		<td>'.getcwd().'</td>
 	</tr>
   <tr>
-		<td>管理员邮箱</td>
-		<td></td>
+		<td>当前在线人数</td>
+		<td><span id="online_num">1</span></td>
 		<td>探针路径</td>
 		<td>'.str_replace('\\', '/', __FILE__).'</td>
 	</tr>
