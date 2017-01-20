@@ -279,7 +279,7 @@ $http_worker->onMessage = function($connection, $data) {
 	}
 
 	if(isset($data['get']['act']) and $data['get']['act'] == 'rt') {
-		$json = htmlspecialchars($data['get']['callback']).'('.json_encode(rt($date['server']['REMOTE_ADDR'])).')';
+		$json = htmlspecialchars($data['get']['callback']).'('.json_encode(rt($data['server']['REMOTE_ADDR'])).')';
 		$connection->send($json);
 	} elseif(strstr($data['server']['REQUEST_URI'], 'phpinfo')) {
 		$connection->send('<pre>'.`php -i`.'</pre>');
