@@ -8,7 +8,7 @@ $http_worker->count = 5;
 
 function writeover($filename, $data, $method = 'w', $chmod = 0) {
 	$handle = fopen($filename, $method);
-	!handle && die("文件打开失败");
+	if(!$handle) die("文件打开失败");
 	flock($handle, LOCK_EX);
 	fwrite($handle, $data);
 	flock($handle, LOCK_UN);
