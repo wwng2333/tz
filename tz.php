@@ -208,8 +208,12 @@ function rt($client_ip) {
 	$return['barmemRealPercent'] = $return['memRealPercent'].'%';
 	$return['memCachedPercent'] = round($meminfo['Cached'] / $meminfo['MemTotal'] * 100, 2);
 	$return['barmemCachedPercent'] = $return['memCachedPercent'].'%';
-	$return['swapPercent'] = round(($meminfo['SwapTotal'] - $meminfo['SwapFree']) / $meminfo['SwapTotal'] * 100, 2);
-	$return['barswapPercent'] = $return['swapPercent'].'%';
+	if($meminfo['SwapTotal'] = 0) {
+		$return['swapPercent'] = false;
+	} else {
+		$return['swapPercent'] = round(($meminfo['SwapTotal'] - $meminfo['SwapFree']) / $meminfo['SwapTotal'] * 100, 2);
+		$return['barswapPercent'] = $return['swapPercent'].'%';
+	}
 	$return['corestat'] = corestat();
 	for($x=2;$x<=count($strs);$x++) {
 		if(isset($NetOut[$x])) {
@@ -515,6 +519,20 @@ function ForDight(Dight,How)
 		}
 	}
 	
+	if($meminfo['SwapTotal'] > 0) {
+	$swap = '		  SWAP区：共 '.formatsize($meminfo['SwapTotal'], 1).' , 已使用
+			  <span id="swapUsed">'.formatsize($SwapUsed, 1).'</span>
+			  , 空闲
+			  <span id="swapFree">'.formatsize($meminfo['SwapFree'], 1).'</span>
+			  , 使用率
+			  <span id="swapPercent">'.$SwapUsedPercent.'</span>
+			  %
+			  <div class="bar"><div id="barswapPercent" class="barli_red" style="width:'.$SwapUsedPercent.'%" >&nbsp;</div> </div>
+		';
+	} else {
+		$swap = '';
+	}
+	
 	if(!isset($data['server']['SERVER_PORT'])) $data['server']['SERVER_PORT'] = 80;
 
 	$test = $head.'
@@ -606,14 +624,7 @@ function ForDight(Dight,How)
 		  <span id="memRealPercent">'.$MemRealPercent.'</span>
 		  %
 		  <div class="bar_1"><div id="barmemRealPercent" class="barli_1" style="width:'.$MemRealPercent.'%">&nbsp;</div></div> 
-		  SWAP区：共 '.formatsize($meminfo['SwapTotal'], 1).' , 已使用
-		  <span id="swapUsed">'.formatsize($SwapUsed, 1).'</span>
-		  , 空闲
-		  <span id="swapFree">'.formatsize($meminfo['SwapFree'], 1).'</span>
-		  , 使用率
-		  <span id="swapPercent">'.$SwapUsedPercent.'</span>
-		  %
-		  <div class="bar"><div id="barswapPercent" class="barli_red" style="width:'.$SwapUsedPercent.'%" >&nbsp;</div> </div>
+		'.$swap.'
 		  </td>
 	</tr>
 	<tr>
