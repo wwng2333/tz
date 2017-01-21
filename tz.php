@@ -208,11 +208,11 @@ function rt($client_ip) {
 	$return['barmemRealPercent'] = $return['memRealPercent'].'%';
 	$return['memCachedPercent'] = round($meminfo['Cached'] / $meminfo['MemTotal'] * 100, 2);
 	$return['barmemCachedPercent'] = $return['memCachedPercent'].'%';
-	if($meminfo['SwapTotal'] = 0) {
-		$return['swapPercent'] = false;
-	} else {
+	if($meminfo['SwapTotal'] > 0) {
 		$return['swapPercent'] = round(($meminfo['SwapTotal'] - $meminfo['SwapFree']) / $meminfo['SwapTotal'] * 100, 2);
 		$return['barswapPercent'] = $return['swapPercent'].'%';
+	} else {
+		$return['swapPercent'] = false;
 	}
 	$return['corestat'] = corestat();
 	for($x=2;$x<=count($strs);$x++) {
