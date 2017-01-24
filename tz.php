@@ -4,6 +4,8 @@ require_once __DIR__ . '/vendor/autoload.php';
 
 Worker::$stdoutFile = 'tz.log';
 $http_worker = new Worker("http://0.0.0.0:80");
+$http_worker->name = 'Proberv';
+$http_worker->user = 'root';
 $http_worker->count = 5;
 
 function writeover($filename, $data, $method = 'w', $chmod = 0) {
@@ -45,47 +47,107 @@ function Check_Third_Pard($name) {
 	}
 }
 
-function cpuinfo() {
-	if(!is_readable('/proc/cpuinfo')) return false;
-	$cpuinfo = file_get_contents('/proc/cpuinfo');
-	preg_match_all('/model\s+name\s*\:\s*(.*)/i', $cpuinfo, $model); //型号
-	preg_match_all('/cpu\s+MHz\s*\:\s*(.*)/i', $cpuinfo, $mhz);
-	preg_match_all('/cache\s+size\s*\:\s*(.*)/i', $cpuinfo, $cache);
-	preg_match_all('/bogomips\s*\:\s*(.*)/i', $cpuinfo, $bogomips);
-	if(empty($model[1])) return false;
-	$res['cpu_num'] = count($model[1]);
-	$models = array();
-	foreach(array_count_values($model[1]) as $model_k=>$model_v){
-		$models[] = array('model'=>$model_k,'total'=>$model_v,'key'=>array_search($model_k,$model[1]));
+function get_key($keyName) {
+	exec("sysctl $keyName", $return, $errno);
+	$return = implode("\n", $return);
+	$return = str_replace($keyName.': ', '', $return);
+	if($errno > 0) {
+		return false;
+	} else {
+		#var_dump($return);
+		return $return;
 	}
-	$res['cpu_model'] = $models;
-	$res['cpu_mhz'] = $mhz[1];
-	$res['cpu_cache'] = $cache[1];
-	$res['cpu_bogomips'] = $bogomips[1];
-	return $res;
+}
+
+function cpuinfo() {
+	global $os;
+	switch($os[0]) {
+		case 'FreeBSD':
+			$res['cpu_model']['0']['model'] = get_key('hw.model');
+			$res['cpu_mhz']['0'] = get_key('machdep.tsc_freq') / 1000000;
+			$res['cpu_num'] = get_key('hw.ncpu');
+			#var_dump($res);
+			return $res;
+		break;
+		default:
+			if(!is_readable('/proc/cpuinfo')) return false;
+			$cpuinfo = file_get_contents('/proc/cpuinfo');
+			preg_match_all('/model\s+name\s*\:\s*(.*)/i', $cpuinfo, $model); //型号
+			preg_match_all('/cpu\s+MHz\s*\:\s*(.*)/i', $cpuinfo, $mhz);
+			preg_match_all('/cache\s+size\s*\:\s*(.*)/i', $cpuinfo, $cache);
+			preg_match_all('/bogomips\s*\:\s*(.*)/i', $cpuinfo, $bogomips);
+			if(empty($model[1])) return false;
+			$res['cpu_num'] = count($model[1]);
+			$models = array();
+			foreach(array_count_values($model[1]) as $model_k=>$model_v){
+				$models[] = array('model'=>$model_k,'total'=>$model_v,'key'=>array_search($model_k,$model[1]));
+			}
+			$res['cpu_model'] = $models;
+			$res['cpu_mhz'] = $mhz[1];
+			$res['cpu_cache'] = $cache[1];
+			$res['cpu_bogomips'] = $bogomips[1];
+			return $res;
+	}
 }
 
 function uptime() {
-	if(!is_readable('/proc/uptime')) return false;
-	return trim(current(explode(' ', file_get_contents('/proc/uptime'))));
+	global $os;
+	switch($os[0]) {
+		case 'FreeBSD':
+			$line = get_key('kern.boottime');
+			$line = explode('}', $line);
+			$line = explode(',', $line[0]);
+			$line = explode('=', $line[1]);
+			$line = trim($line[1]);
+			return $line;
+		break;
+		default:
+			if(!is_readable('/proc/uptime')) return false;
+			return trim(current(explode(' ', file_get_contents('/proc/uptime'))));
+	}
+	
 }
 
 function meminfo() {
-	if(!is_readable('/proc/meminfo')) return false;
-	$meminfo = file_get_contents('/proc/meminfo');
-	$res['MemTotal'] = preg_match('/MemTotal\s*\:\s*(\d+)/i', $meminfo, $MemTotal) ? (int)$MemTotal[1] : 0;
-	$res['MemFree'] = preg_match('/MemFree\s*\:\s*(\d+)/i', $meminfo, $MemFree) ? (int)$MemFree[1] : 0;
-	$res['Cached'] = preg_match('/Cached\s*\:\s*(\d+)/i', $meminfo, $Cached) ? (int)$Cached[1] : 0;
-	$res['Buffers'] = preg_match('/Buffers\s*\:\s*(\d+)/i', $meminfo, $Buffers) ? (int)$Buffers[1] : 0;
-	$res['SwapTotal'] = preg_match('/SwapTotal\s*\:\s*(\d+)/i', $meminfo, $SwapTotal) ? (int)$SwapTotal[1] : 0;
-	$res['SwapFree'] = preg_match('/SwapFree\s*\:\s*(\d+)/i', $meminfo, $SwapFree) ? (int)$SwapFree[1] : 0;
-	return $res;
+	global $os;
+	switch($os[0]) {
+		case 'FreeBSD':
+			$res['MemTotal'] = get_key("hw.physmem") / 1024;
+			return $res;
+		break;
+		default:
+			if(!is_readable('/proc/meminfo')) return false;
+			$meminfo = file_get_contents('/proc/meminfo');
+			$res['MemTotal'] = preg_match('/MemTotal\s*\:\s*(\d+)/i', $meminfo, $MemTotal) ? (int)$MemTotal[1] : 0;
+			$res['MemFree'] = preg_match('/MemFree\s*\:\s*(\d+)/i', $meminfo, $MemFree) ? (int)$MemFree[1] : 0;
+			$res['Cached'] = preg_match('/Cached\s*\:\s*(\d+)/i', $meminfo, $Cached) ? (int)$Cached[1] : 0;
+			$res['Buffers'] = preg_match('/Buffers\s*\:\s*(\d+)/i', $meminfo, $Buffers) ? (int)$Buffers[1] : 0;
+			$res['SwapTotal'] = preg_match('/SwapTotal\s*\:\s*(\d+)/i', $meminfo, $SwapTotal) ? (int)$SwapTotal[1] : 0;
+			$res['SwapFree'] = preg_match('/SwapFree\s*\:\s*(\d+)/i', $meminfo, $SwapFree) ? (int)$SwapFree[1] : 0;
+			return $res;
+	}
 }
 
 function loadavg() {
-	if(!is_readable('/proc/loadavg')) return false;
-	$loadavg = explode(' ', file_get_contents('/proc/loadavg'));
-	return implode(' ', current(array_chunk($loadavg, 4)));
+	global $os;
+	switch($os[0]) {
+		case 'FreeBSD':
+			exec('uptime', $result, $errno);
+			if($errno > 0) {
+				return false;
+			} else {
+				$result = implode('', $result);
+				$temp = explode(': ', $result);
+				$loadavg = str_replace(',', '', $temp[1]);
+				#var_dump($loadavg);
+				return $loadavg;
+			}
+		break;
+		default:
+			if(!is_readable('/proc/loadavg')) return false;
+			$loadavg = explode(' ', file_get_contents('/proc/loadavg'));
+			return implode(' ', current(array_chunk($loadavg, 4)));
+	}
 }
 
 function _get_loaded_extensions() {
@@ -268,6 +330,7 @@ function corestat() {
 }
 
 $http_worker->onMessage = function($connection, $data) {
+	global $os;
 	echo json_encode($data)."\n";
 	if(isset($data['get']['act'])) {
 		switch($data['get']['act']) {
@@ -346,7 +409,7 @@ $http_worker->onMessage = function($connection, $data) {
 *{font-family:Microsoft Yahei,Tahoma,Arial}body{margin:0 auto;background-color:#fafafa;text-align:center;font-size:9pt;font-family:Tahoma,Arial}body,h1{padding:0}h1{margin:0;color:#333;font-size:26px;font-family:Lucida Sans Unicode,Lucida Grande,sans-serif}h1 small{font-weight:700;font-size:11px;font-family:Tahoma}a{color:#666}a,a.black{text-decoration:none}a.black{color:#000}table{clear:both;margin:0 0 10px;padding:0;width:100%;border-collapse:collapse;box-shadow:1px 1px 1px #ccc;border-spacing:0;-ms-filter:\"progid:DXImageTransform.Microsoft.Shadow(Strength=2,Direction=135,Color='#CCCCCC')\"}th{padding:3px 6px;border:1px solid #ccc;background:#dedede;color:#626262;text-align:left;font-weight:700}tr{padding:0;background:#fff}td{padding:3px 6px;border:1px solid #ccc}.w_logo{width:13%;color:#333;FONT-SIZE:15px}.w_logo,.w_top{height:25px;text-align:center}.w_top{width:8.7%}.w_top:hover{background:#dadada}.w_foot{height:25px;background:#dedede;text-align:center}input{padding:2px;border-top:1px solid #666;border-right:1px solid #ccc;border-bottom:1px solid #ccc;border-left:1px solid #666;background:#fff;font-size:9pt}input.btn{padding:0 6px;height:20px;border:1px solid #999;background:#f2f2f2;color:#666;font-weight:700;font-size:9pt;line-height:20px}.bar{border:1px solid #999}.bar,.bar_1{overflow:hidden;margin:2px 0 5px;padding:1px;width:89%;height:5px;background:#fff;font-size:2px}.bar_1{border:1px dotted #999}.barli_red{background:#f60}.barli_blue,.barli_red{margin:0;padding:0;height:5px}.barli_blue{background:#09f}.barli_green{background:#36b52a}.barli_black,.barli_green{margin:0;padding:0;height:5px}.barli_black{background:#333}.barli_1{background:#999}.barli,.barli_1{margin:0;padding:0;height:5px}.barli{background:#36b52a}#page{margin:0 auto;padding:0 auto;width:60pc;text-align:left}#header{position:relative;padding:5px}.w_small{font-family:Courier New}.w_number{color:#f800fe}.sudu{padding:0;background:#5dafd1}.suduk{margin:0;padding:0}.resNo{color:red}.word{word-break:break-all}
 </style>
 
-<script language=\"JavaScript\" type=\"text/javascript\" src=\"http://cdn.bootcss.com/jquery/3.1.1/jquery.min.js\"></script>
+<noscript language=\"JavaScript\" type=\"text/javascript\" src=\"http://cdn.bootcss.com/jquery/3.1.1/jquery.min.js\"></noscript>
 
 <script>
 function caola_test(server_test) {
@@ -534,7 +597,8 @@ function ForDight(Dight,How)
 	}
 	
 	if(!isset($data['server']['SERVER_PORT'])) $data['server']['SERVER_PORT'] = 80;
-
+	$cpu = $cpuinfo['cpu_model']['0']['model'].' | 频率:'.$cpuinfo['cpu_mhz']['0'];
+	if($os[0] == 'Linux') $cpu .= ' | 二级缓存:'.$cpuinfo['cpu_cache']['0'].' | Bogomips:'.$cpuinfo['cpu_bogomips']['0'].' × '.$cpuinfo['cpu_num'];
 	$test = $head.'
 <!--服务器相关参数-->
 <table>
@@ -565,7 +629,7 @@ function ForDight(Dight,How)
   </tr>
   <tr>
 		<td>服务器主机名</td>
-		<td>'.str_replace("\n", '', `hostname`).'</td>
+		<td>'.$hostname.'</td>
 		<td>绝对路径</td>
 		<td>'.getcwd().'</td>
 	</tr>
@@ -587,7 +651,7 @@ function ForDight(Dight,How)
   </tr>
   <tr>
 	<td width="13%">CPU型号 ['.$cpuinfo['cpu_num'].'核]</td>
-	<td width="87%" colspan="5">'.$cpuinfo['cpu_model']['0']['model'].' | 频率:'.$cpuinfo['cpu_mhz']['0'].' | 二级缓存:'.$cpuinfo['cpu_cache']['0'].' | Bogomips:'.$cpuinfo['cpu_bogomips']['0'].' × '.$cpuinfo['cpu_num'].'</td>
+	<td width="87%" colspan="5">'.$cpu.'</td>
   </tr>
   <tr>
 	<td>CPU使用状况</td>
