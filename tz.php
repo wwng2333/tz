@@ -226,10 +226,14 @@ function isfun($funName = '') {
 	return (false !== function_exists($funName)) ? '<font color="green">√</font>' : '<font color="red">×</font>';
 }
 
+function get_format_level($string) {
+	return str_replace((float)$string, '', $string);
+}
+
 function rt($client_ip) {
 	$meminfo = meminfo();
-	$dt = round(@disk_total_space(".")/(1024*1024*1024),3); //总
-	$df = round(@disk_free_space(".")/(1024*1024*1024),3); //可用
+	$dt = formatsize(@disk_total_space(".")); //总
+	$df = formatsize(@disk_free_space(".")); //可用
 	
 	$strs = @file("/proc/net/dev"); 
 	for($i=2; $i < count($strs); $i++ ) {
@@ -240,8 +244,8 @@ function rt($client_ip) {
 		$NetOut[$i]  = formatsize($info[10][0]);
 	}
 	$return = array();
-	$return['useSpace'] = $dt-$df;
-	$return['freeSpace'] = $df;
+	$return['useSpace'] = (float)$dt - (float)$df.get_format_level($dt);
+	$return['freeSpace'] = (float)$df.get_format_level($df);
 	$return['hdPercent'] = (floatval($dt)!=0) ? round($return['useSpace'] / $dt*100,2) : 0;
 	$return['barhdPercent'] = $return['hdPercent'].'%';	
 	$return['TotalMemory'] = formatsize($meminfo['MemTotal'], 1);
@@ -377,9 +381,9 @@ $http_worker->onMessage = function($connection, $data) {
 			$hostname = $os[2];
 		}
 		
-		$dt = round(@disk_total_space(".")/(1024*1024*1024),3); //总
-		$df = round(@disk_free_space(".")/(1024*1024*1024),3); //可用
-		$du = $dt-$df; //已用
+		$dt = formatsize(@disk_total_space(".")); //总
+		$df = formatsize(@disk_free_space(".")); //可用
+		$du = (float)$dt - (float)$df.get_format_level($dt); //已用
 		$hdPercent = round ($du / $dt * 100 , 2);
 		
 		$strs = @file("/proc/net/dev"); 
@@ -409,7 +413,7 @@ $http_worker->onMessage = function($connection, $data) {
 *{font-family:Microsoft Yahei,Tahoma,Arial}body{margin:0 auto;background-color:#fafafa;text-align:center;font-size:9pt;font-family:Tahoma,Arial}body,h1{padding:0}h1{margin:0;color:#333;font-size:26px;font-family:Lucida Sans Unicode,Lucida Grande,sans-serif}h1 small{font-weight:700;font-size:11px;font-family:Tahoma}a{color:#666}a,a.black{text-decoration:none}a.black{color:#000}table{clear:both;margin:0 0 10px;padding:0;width:100%;border-collapse:collapse;box-shadow:1px 1px 1px #ccc;border-spacing:0;-ms-filter:\"progid:DXImageTransform.Microsoft.Shadow(Strength=2,Direction=135,Color='#CCCCCC')\"}th{padding:3px 6px;border:1px solid #ccc;background:#dedede;color:#626262;text-align:left;font-weight:700}tr{padding:0;background:#fff}td{padding:3px 6px;border:1px solid #ccc}.w_logo{width:13%;color:#333;FONT-SIZE:15px}.w_logo,.w_top{height:25px;text-align:center}.w_top{width:8.7%}.w_top:hover{background:#dadada}.w_foot{height:25px;background:#dedede;text-align:center}input{padding:2px;border-top:1px solid #666;border-right:1px solid #ccc;border-bottom:1px solid #ccc;border-left:1px solid #666;background:#fff;font-size:9pt}input.btn{padding:0 6px;height:20px;border:1px solid #999;background:#f2f2f2;color:#666;font-weight:700;font-size:9pt;line-height:20px}.bar{border:1px solid #999}.bar,.bar_1{overflow:hidden;margin:2px 0 5px;padding:1px;width:89%;height:5px;background:#fff;font-size:2px}.bar_1{border:1px dotted #999}.barli_red{background:#f60}.barli_blue,.barli_red{margin:0;padding:0;height:5px}.barli_blue{background:#09f}.barli_green{background:#36b52a}.barli_black,.barli_green{margin:0;padding:0;height:5px}.barli_black{background:#333}.barli_1{background:#999}.barli,.barli_1{margin:0;padding:0;height:5px}.barli{background:#36b52a}#page{margin:0 auto;padding:0 auto;width:60pc;text-align:left}#header{position:relative;padding:5px}.w_small{font-family:Courier New}.w_number{color:#f800fe}.sudu{padding:0;background:#5dafd1}.suduk{margin:0;padding:0}.resNo{color:red}.word{word-break:break-all}
 </style>
 
-<noscript language=\"JavaScript\" type=\"text/javascript\" src=\"http://cdn.bootcss.com/jquery/3.1.1/jquery.min.js\"></noscript>
+<script language=\"JavaScript\" type=\"text/javascript\" src=\"http://cdn.bootcss.com/jquery/3.1.1/jquery.min.js\"></script>
 
 <script>
 function caola_test(server_test) {
@@ -542,9 +546,9 @@ function ForDight(Dight,How)
 		$disFuns = implode('  ', $disFuns_array);
 	}
 	
-	isset($_COOKIE) ? $cookie = '<font color="green">√</font>' : $cookie = '<font color="red">×</font>';
-	get_cfg_var("SMTP") ? $smtp_enable = '<font color="green">√</font>' : $smtp_enable = '<font color="red">×</font>';
-	get_cfg_var("SMTP") ? $smtp_addr = get_cfg_var("SMTP") : $smtp_addr = '<font color="red">×</font>';
+	$cookie = isset($_COOKIE) ? '<font color="green">√</font>' : '<font color="red">×</font>';
+	$smtp_enable = get_cfg_var("SMTP") ? '<font color="green">√</font>' : '<font color="red">×</font>';
+	$smtp_addr = get_cfg_var("SMTP") ? get_cfg_var("SMTP") : '<font color="red">×</font>';
 
 	$network = '';
 	if (false !== ($strs = @file("/proc/net/dev"))) {
@@ -660,9 +664,9 @@ function ForDight(Dight,How)
   <tr>
 	<td>硬盘使用状况</td>
 	<td colspan="5">
-		总空间 '.$dt.' G，
-		已用 <font color=\'#333333\'><span id="useSpace">'.$du.'</span></font> G，
-		空闲 <font color=\'#333333\'><span id="freeSpace">'.$df.'</span></font> G，
+		总空间 '.$dt.' ，
+		已用 <font color=\'#333333\'><span id="useSpace">'.$du.'</span></font>，
+		空闲 <font color=\'#333333\'><span id="freeSpace">'.$df.'</span></font>，
 		使用率 <span id="hdPercent">'.$hdPercent.'</span> %
 		<div class="bar"><div id="barhdPercent" class="barli_black" style="width:'.$hdPercent.'%">&nbsp;</div> </div>
 	</td>
