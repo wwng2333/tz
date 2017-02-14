@@ -1,5 +1,5 @@
 # tz
-基于workerman的雅黑探针 部分功能支持FreeBSD
+基于workerman的雅黑探针 部分功能支持FreeBSD和OpenWRT
 
 Usage:
 ```bash

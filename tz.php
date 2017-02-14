@@ -59,34 +59,70 @@ function get_key($keyName) {
 	}
 }
 
+function remove_spaces($input) {
+	while(strstr($input, '  ')) {
+		$input = str_replace('  ', ' ', $input);
+	}
+	return $input;
+}
+
 function cpuinfo() {
-	global $os;
-	switch($os[0]) {
-		case 'FreeBSD':
-			$res['cpu_model']['0']['model'] = get_key('hw.model');
-			$res['cpu_mhz']['0'] = get_key('machdep.tsc_freq') / 1000000;
-			$res['cpu_num'] = get_key('hw.ncpu');
-			#var_dump($res);
-			return $res;
-		break;
-		default:
-			if(!is_readable('/proc/cpuinfo')) return false;
-			$cpuinfo = file_get_contents('/proc/cpuinfo');
-			preg_match_all('/model\s+name\s*\:\s*(.*)/i', $cpuinfo, $model); //型号
-			preg_match_all('/cpu\s+MHz\s*\:\s*(.*)/i', $cpuinfo, $mhz);
-			preg_match_all('/cache\s+size\s*\:\s*(.*)/i', $cpuinfo, $cache);
-			preg_match_all('/bogomips\s*\:\s*(.*)/i', $cpuinfo, $bogomips);
-			if(empty($model[1])) return false;
-			$res['cpu_num'] = count($model[1]);
-			$models = array();
-			foreach(array_count_values($model[1]) as $model_k=>$model_v){
-				$models[] = array('model'=>$model_k,'total'=>$model_v,'key'=>array_search($model_k,$model[1]));
-			}
-			$res['cpu_model'] = $models;
-			$res['cpu_mhz'] = $mhz[1];
-			$res['cpu_cache'] = $cache[1];
-			$res['cpu_bogomips'] = $bogomips[1];
-			return $res;
+	global $os,$machine;
+	$arch_router = array('arm','armeb','armel','mips','mipsel');
+	if(in_array($machine, $arch_router)) {
+		$l_clock = array();
+		exec('dmesg | grep Clocks', $clocks);
+		exec('dmesg | grep SoC', $cpuname);
+		$tmp = explode(':', $cpuname);
+		$res['cpu_model']['0']['model'] = trim($tmp[1]);
+		$cpuinfo = explode("\n", file_get_contents('/proc/cpuinfo'));
+		$cpu_num = 0;
+		foreach($cpuinfo as $k => $v) {
+			$v = explode(':', remove_spaces($v));
+			if(strtolower($v[0]) == 'processor') $cpu_num++;
+		}
+		preg_match_all('/bogomips\s*\:\s*(.*)/i', $cpuinfo, $bogomips);
+		$clocks = str_replace(' ', '', $clocks[0]);
+		$tmp = explode('Clocks:', $clocks);
+		$tmp = explode(',', $tmp[1]);
+		for($i=0;$i<count($tmp);$i++) {
+			$piece_now = $tmp[$i];
+			$l_tmp = explode(':', $piece_now);
+			$k = strtolower($l_tmp[0]);
+			$v = $l_tmp[1];
+			$l_clock[$k] = $v;
+		}
+		$res['cpu_mhz']['0'] = $l_clock['cpu'];
+		$res['cpu_num'] = $cpu_num;
+		return $res;
+	} else {
+		switch($os[0]) {
+			case 'FreeBSD':
+				$res['cpu_model']['0']['model'] = get_key('hw.model');
+				$res['cpu_mhz']['0'] = get_key('machdep.tsc_freq') / 1000000;
+				$res['cpu_num'] = get_key('hw.ncpu');
+				#var_dump($res);
+				return $res;
+			break;
+			default:
+				if(!is_readable('/proc/cpuinfo')) return false;
+				$cpuinfo = file_get_contents('/proc/cpuinfo');
+				preg_match_all('/model\s+name\s*\:\s*(.*)/i', $cpuinfo, $model); //型号
+				preg_match_all('/cpu\s+MHz\s*\:\s*(.*)/i', $cpuinfo, $mhz);
+				preg_match_all('/cache\s+size\s*\:\s*(.*)/i', $cpuinfo, $cache);
+				preg_match_all('/bogomips\s*\:\s*(.*)/i', $cpuinfo, $bogomips);
+				if(empty($model[1])) return false;
+				$res['cpu_num'] = count($model[1]);
+				$models = array();
+				foreach(array_count_values($model[1]) as $model_k=>$model_v){
+					$models[] = array('model'=>$model_k,'total'=>$model_v,'key'=>array_search($model_k,$model[1]));
+				}
+				$res['cpu_model'] = $models;
+				$res['cpu_mhz'] = $mhz[1];
+				$res['cpu_cache'] = $cache[1];
+				$res['cpu_bogomips'] = $bogomips[1];
+				return $res;
+		}
 	}
 }
 
@@ -246,7 +282,7 @@ function rt($client_ip) {
 	$return = array();
 	$return['useSpace'] = (float)$dt - (float)$df.get_format_level($dt);
 	$return['freeSpace'] = (float)$df.get_format_level($df);
-	$return['hdPercent'] = (floatval($dt)!=0) ? round($return['useSpace'] / $dt*100,2) : 0;
+	$return['hdPercent'] = (floatval($dt)!=0) ? round($return['useSpace'] / $dt * 100, 2) : 0;
 	$return['barhdPercent'] = $return['hdPercent'].'%';	
 	$return['TotalMemory'] = formatsize($meminfo['MemTotal'], 1);
 	$return['UsedMemory'] = formatsize($meminfo['MemTotal'] - $meminfo['MemFree'], 1);
@@ -365,6 +401,7 @@ $http_worker->onMessage = function($connection, $data) {
 	} else {
 		$time_start = microtime(true);
 		$os = explode(" ", php_uname());
+		$machine = strtolower(exec('uname -m'));
 		$get_loaded_extensions = get_loaded_extensions();
 		
 		if(in_array('redis', $get_loaded_extensions)) {
