@@ -67,22 +67,26 @@ function remove_spaces($input) {
 }
 
 function cpuinfo() {
-	global $os,$machine;
+	global $os;
+	$machine = exec('uname -m');
 	$arch_router = array('arm','armeb','armel','mips','mipsel');
 	if(in_array($machine, $arch_router)) {
 		$l_clock = array();
 		exec('dmesg | grep Clocks', $clocks);
 		exec('dmesg | grep SoC', $cpuname);
+		if(is_array($cpuname)) $cpuname = implode('', $cpuname);
 		$tmp = explode(':', $cpuname);
 		$res['cpu_model']['0']['model'] = trim($tmp[1]);
-		$cpuinfo = explode("\n", file_get_contents('/proc/cpuinfo'));
+		$cpuinfo = file_get_contents('/proc/cpuinfo');
+		$l_cpuinfo = explode("\n", $cpuinfo);
 		$cpu_num = 0;
-		foreach($cpuinfo as $k => $v) {
+		foreach($l_cpuinfo as $k => $v) {
 			$v = explode(':', remove_spaces($v));
 			if(strtolower($v[0]) == 'processor') $cpu_num++;
 		}
 		preg_match_all('/bogomips\s*\:\s*(.*)/i', $cpuinfo, $bogomips);
-		$clocks = str_replace(' ', '', $clocks[0]);
+		if(is_array($clocks)) $clocks = implode('', $clocks);
+		$clocks = str_replace(' ', '', $clocks);
 		$tmp = explode('Clocks:', $clocks);
 		$tmp = explode(',', $tmp[1]);
 		for($i=0;$i<count($tmp);$i++) {
@@ -401,7 +405,6 @@ $http_worker->onMessage = function($connection, $data) {
 	} else {
 		$time_start = microtime(true);
 		$os = explode(" ", php_uname());
-		$machine = strtolower(exec('uname -m'));
 		$get_loaded_extensions = get_loaded_extensions();
 		
 		if(in_array('redis', $get_loaded_extensions)) {
