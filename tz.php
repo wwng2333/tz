@@ -6,7 +6,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 $http_worker = new Worker("http://0.0.0.0:2345");
 $http_worker->name = 'Proberv';
 $http_worker->user = 'root';
-$http_worker->count = 5;
+$http_worker->count = 3;
 
 function writeover($filename, $data, $method = 'w', $chmod = 0) {
 	$handle = fopen($filename, $method);
@@ -389,17 +389,18 @@ $http_worker->onMessage = function($connection, $data) {
 			case 'io_test':
 				$connection->send(io_test());
 			break;
-			default:
+			default: break;
 		}
 	}
 
+	$bin_name = readlink('/proc/self/exe');
 	if(isset($data['get']['act']) and $data['get']['act'] == 'rt') {
 		$json = htmlspecialchars($data['get']['callback']).'('.json_encode(rt($data['server']['REMOTE_ADDR'])).')';
 		$connection->send($json);
 	} elseif(strstr($data['server']['REQUEST_URI'], 'phpinfo')) {
-		$connection->send('<pre>'.`php -i`.'</pre>');
+		$connection->send('<pre>'.`$bin_name -i`.'</pre>');
 	} elseif(strstr($data['server']['REQUEST_URI'], 'functions')) {
-		$cmd = 'php -r "print_r(get_defined_functions());"';
+		$cmd = $bin_name.' -r "print_r(get_defined_functions());"';
 		exec($cmd, $result);
 		$result = implode("\n", $result);
 		$functions = '<pre>'.$result.'</pre>';

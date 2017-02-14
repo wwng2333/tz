@@ -14,9 +14,9 @@ php tz.php start
 use Workerman\Worker;
 require_once __DIR__ . '/vendor/autoload.php';
 
-Worker::$stdoutFile = 'tz.log'; //日志
-$http_worker = new Worker("http://0.0.0.0:80"); //监听地址
+#Worker::$stdoutFile = 'tz.log'; //日志，默认禁用
+$http_worker = new Worker("http://0.0.0.0:2345"); //监听地址
 $http_worker->name = 'Proberv'; //实例名称
 $http_worker->user = 'root'; //以哪个用户运行
-$http_worker->count = 5; //子进程数量
+$http_worker->count = 3; //子进程数量
 ```
