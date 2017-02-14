@@ -2,8 +2,8 @@
 use Workerman\Worker;
 require_once __DIR__ . '/vendor/autoload.php';
 
-Worker::$stdoutFile = 'tz.log';
-$http_worker = new Worker("http://0.0.0.0:80");
+#Worker::$stdoutFile = 'tz.log';
+$http_worker = new Worker("http://0.0.0.0:2345");
 $http_worker->name = 'Proberv';
 $http_worker->user = 'root';
 $http_worker->count = 5;
@@ -82,9 +82,10 @@ function cpuinfo() {
 		$cpu_num = 0;
 		foreach($l_cpuinfo as $k => $v) {
 			$v = explode(':', remove_spaces($v));
-			if(strtolower($v[0]) == 'processor') $cpu_num++;
+			$v[0] = trim(strtolower($v[0]));
+			if($v[0] == 'processor') $cpu_num++;
+			if($v[0] == 'bogomips') $bogomips = trim($v[1]);
 		}
-		preg_match_all('/bogomips\s*\:\s*(.*)/i', $cpuinfo, $bogomips);
 		if(is_array($clocks)) $clocks = implode('', $clocks);
 		$clocks = str_replace(' ', '', $clocks);
 		$tmp = explode('Clocks:', $clocks);
@@ -96,8 +97,9 @@ function cpuinfo() {
 			$v = $l_tmp[1];
 			$l_clock[$k] = $v;
 		}
-		$res['cpu_mhz']['0'] = $l_clock['cpu'];
+		$res['cpu_mhz']['0'] = str_replace('mhz', '', strtolower($l_clock['cpu']));
 		$res['cpu_num'] = $cpu_num;
+		$res['cpu_bogomips']['0'] = $bogomips;
 		return $res;
 	} else {
 		switch($os[0]) {
@@ -642,7 +644,8 @@ function ForDight(Dight,How)
 	
 	if(!isset($data['server']['SERVER_PORT'])) $data['server']['SERVER_PORT'] = 80;
 	$cpu = $cpuinfo['cpu_model']['0']['model'].' | 频率:'.$cpuinfo['cpu_mhz']['0'];
-	if($os[0] == 'Linux') $cpu .= ' | 二级缓存:'.$cpuinfo['cpu_cache']['0'].' | Bogomips:'.$cpuinfo['cpu_bogomips']['0'].' × '.$cpuinfo['cpu_num'];
+	if(isset($cpuinfo['cpu_cache']['0'])) $cpu .= ' | 二级缓存:'.$cpuinfo['cpu_cache']['0'];
+	if(isset($cpuinfo['cpu_bogomips']['0'])) $cpu .= ' | Bogomips:'.$cpuinfo['cpu_bogomips']['0'].' × '.$cpuinfo['cpu_num'];
 	$test = $head.'
 <!--服务器相关参数-->
 <table>
