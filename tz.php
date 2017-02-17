@@ -40,23 +40,14 @@ function count_online_num($time, $ip) {
 }
 
 function Check_Third_Pard($name) {
-	if(get_extension_funcs($name) == false) {
-		return '<font color="red">×</font>';
-	} else {
-		return '<font color="green">√</font>';
-	}
+		return (!get_extension_funcs($name)) ? '<font color="red">×</font>' : '<font color="green">√</font>';
 }
 
 function get_key($keyName) {
 	exec("sysctl $keyName", $return, $errno);
 	$return = implode("\n", $return);
 	$return = str_replace($keyName.': ', '', $return);
-	if($errno > 0) {
-		return false;
-	} else {
-		#var_dump($return);
-		return $return;
-	}
+	return ($errno > 0) ? false : $return;
 }
 
 function remove_spaces($input) {
@@ -128,6 +119,7 @@ function cpuinfo() {
 				$res['cpu_cache'] = $cache[1];
 				$res['cpu_bogomips'] = $bogomips[1];
 				return $res;
+			break;
 		}
 	}
 }
@@ -197,11 +189,7 @@ function _get_loaded_extensions() {
 	$count = count($array);
 	$return = '';
 	for($i=0;$i<$count;$i++) {
-		if ($i != 0 && $i % 13 == 0) {
-			$return .= $array[$i].'<br/>';
-		} else {
-			$return .= $array[$i].'&nbsp;&nbsp;';
-		}
+		$return .= ($i != 0 && $i % 13 == 0) ? $array[$i].'<br/>' : $array[$i].'&nbsp;&nbsp;';
 	}
 	return $return;
 }
@@ -305,8 +293,6 @@ function rt($client_ip) {
 	$min = floor(($uptime % 3600) / 60).'分钟';
 	$sec = floor($uptime % 60).'秒';
 	$return['uptime'] = $day.$hour.$min.$sec;
-	$return['freetime'] = '';
-	$return['bjtime'] = '';
 	$return['stime'] = date('Y-m-d H:i:s');
 	$return['memRealUsed'] = formatsize($meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Cached'] - $meminfo['Buffers'], 1);
 	$return['memRealFree'] = formatsize($meminfo['MemFree'] + $meminfo['Cached'] + $meminfo['Buffers'], 1);
@@ -348,7 +334,7 @@ function GetCoreInformation() {
 }
 
 function GetCpuPercentages($stat1, $stat2) {
-	if(count($stat1)!==count($stat2)) return;
+	if(count($stat1) !== count($stat2)) return;
 	$cpus = array();
 	for( $i = 0, $l = count($stat1); $i < $l; $i++) {
 		$dif = array();
@@ -409,13 +395,9 @@ $http_worker->onMessage = function($connection, $data) {
 		$time_start = microtime(true);
 		$os = explode(" ", php_uname());
 		$get_loaded_extensions = get_loaded_extensions();
-		
-		if(in_array('redis', $get_loaded_extensions)) {
-			$redis_support = '<font color="green">√</font>';
-		} else {
-			$redis_support = '<font color="red">×</font>';
-		}
-		
+
+		$redis_support = in_array('redis', $get_loaded_extensions) ? '<font color="green">√</font>' ? '<font color="red">×</font>';
+
 		if('/'==DIRECTORY_SEPARATOR) {
 			$kernel = $os[2];
 			$hostname = $os[1];
@@ -629,8 +611,7 @@ function ForDight(Dight,How)
 		}
 	}
 	
-	if($meminfo['SwapTotal'] > 0) {
-	$swap = '		  SWAP区：共 '.formatsize($meminfo['SwapTotal'], 1).' , 已使用
+	$swap = ($meminfo['SwapTotal'] > 0) ? '		  SWAP区：共 '.formatsize($meminfo['SwapTotal'], 1).' , 已使用
 			  <span id="swapUsed">'.formatsize($SwapUsed, 1).'</span>
 			  , 空闲
 			  <span id="swapFree">'.formatsize($meminfo['SwapFree'], 1).'</span>
@@ -638,11 +619,8 @@ function ForDight(Dight,How)
 			  <span id="swapPercent">'.$SwapUsedPercent.'</span>
 			  %
 			  <div class="bar"><div id="barswapPercent" class="barli_red" style="width:'.$SwapUsedPercent.'%" >&nbsp;</div> </div>
-		';
-	} else {
-		$swap = '';
-	}
-	
+		' : '';
+
 	if(!isset($data['server']['SERVER_PORT'])) $data['server']['SERVER_PORT'] = 80;
 	$cpu = $cpuinfo['cpu_model']['0']['model'].' | 频率:'.$cpuinfo['cpu_mhz']['0'];
 	if(isset($cpuinfo['cpu_cache']['0'])) $cpu .= ' | 二级缓存:'.$cpuinfo['cpu_cache']['0'];
