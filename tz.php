@@ -396,7 +396,7 @@ $http_worker->onMessage = function($connection, $data) {
 		$os = explode(" ", php_uname());
 		$get_loaded_extensions = get_loaded_extensions();
 
-		$redis_support = in_array('redis', $get_loaded_extensions) ? '<font color="green">√</font>' ? '<font color="red">×</font>';
+		$redis_support = in_array('redis', $get_loaded_extensions) ? '<font color="green">√</font>' : '<font color="red">×</font>';
 
 		if('/'==DIRECTORY_SEPARATOR) {
 			$kernel = $os[2];
