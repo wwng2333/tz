@@ -1,11 +1,17 @@
 <?php
 use Workerman\Worker;
-require_once __DIR__ . '/vendor/autoload.php';
+if(is_readable(__DIR__ . '/vendor/autoload.php')) {
+	require_once __DIR__ . '/vendor/autoload.php';
+} elseif(is_readable(__DIR__ . '/vendor/Autoloader.php')) {
+	require_once __DIR__ . '/vendor/Autoloader.php';
+} else {
+	die("You need to install workerman!\nCheckout https://github.com/walkor/Workerman\n");
+}
 
 #Worker::$stdoutFile = 'tz.log';
 $http_worker = new Worker("http://0.0.0.0:2345");
 $http_worker->name = 'Proberv';
-$http_worker->user = 'root';
+$http_worker->user = 'nobody';
 $http_worker->count = 3;
 
 function writeover($filename, $data, $method = 'w', $chmod = 0) {
@@ -30,9 +36,7 @@ function count_online_num($time, $ip) {
 			$json = file_get_contents($fileCount);
 			$arr = json_decode($json,true);
 			$arr[$ip] = $time;
-			foreach($arr as $a_ip => $a_time) {
-				if($time - $a_time > $gap) unset($arr[$a_ip]);
-			}
+			foreach($arr as $a_ip => $a_time) if($time - $a_time > $gap) unset($arr[$a_ip]);
 			writeover($fileCount, json_encode($arr), 'w', 1);
 		}
 		return count($arr);
@@ -40,7 +44,7 @@ function count_online_num($time, $ip) {
 }
 
 function Check_Third_Pard($name) {
-		return (!get_extension_funcs($name)) ? '<font color="red">×</font>' : '<font color="green">√</font>';
+	return (!get_extension_funcs($name)) ? '<font color="red">×</font>' : '<font color="green">√</font>';
 }
 
 function get_key($keyName) {
@@ -59,46 +63,67 @@ function remove_spaces($input) {
 
 function cpuinfo() {
 	global $os;
-	$machine = exec('uname -m');
-	$arch_router = array('arm','armeb','armel','mips','mipsel');
-	if(in_array($machine, $arch_router)) {
-		$l_clock = array();
-		exec('dmesg | grep Clocks', $clocks);
-		exec('dmesg | grep SoC', $cpuname);
-		if(is_array($cpuname)) $cpuname = implode('', $cpuname);
-		$tmp = explode(':', $cpuname);
-		$res['cpu_model']['0']['model'] = trim($tmp[1]);
-		$cpuinfo = file_get_contents('/proc/cpuinfo');
-		$l_cpuinfo = explode("\n", $cpuinfo);
-		$cpu_num = 0;
-		foreach($l_cpuinfo as $k => $v) {
-			$v = explode(':', remove_spaces($v));
-			$v[0] = trim(strtolower($v[0]));
-			if($v[0] == 'processor') $cpu_num++;
-			if($v[0] == 'bogomips') $bogomips = trim($v[1]);
+	$os_real = explode(' ', php_uname());
+	$os_count = count($os_real) - 1;
+	$machine = $os_real[$os_count];
+	var_dump($machine);
+	$arch_embedded = array('armv6l','armv7l','armv8l','mips','mipsel','aarch64');
+	if(in_array($machine, $arch_embedded)) {
+		echo 2;
+		if(is_file('/system/build.prop')) {
+			echo 3;
+			$cpu_num = 0;
+			$cpuinfo = file_get_contents('/proc/cpuinfo');
+			$l_cpuinfo = explode("\n", $cpuinfo);
+			foreach($l_cpuinfo as $k => $v) {
+				$v = explode(':', remove_spaces($v));
+				$v[0] = trim($v[0]);
+				if($v[0] == 'processor') $cpu_num++;
+				if($v[0] == 'Hardware') $cpuname = $v[1];
+			}
+			$res['cpu_model']['0']['model'] = $cpuname;
+			$res['cpu_mhz']['0'] = file_get_contents('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq') / 1000;
+			$res['cpu_num'] = $cpu_num;
+			var_dump($res);
+			return $res;
+		} else {
+			$l_clock = array();
+			exec('dmesg | grep Clocks', $clocks);
+			exec('dmesg | grep SoC', $cpuname);
+			if(is_array($cpuname)) $cpuname = implode('', $cpuname);
+			$tmp = explode(':', $cpuname);
+			$res['cpu_model']['0']['model'] = trim($tmp[1]);
+			$cpuinfo = file_get_contents('/proc/cpuinfo');
+			$l_cpuinfo = explode("\n", $cpuinfo);
+			$cpu_num = 0;
+			foreach($l_cpuinfo as $k => $v) {
+				$v = explode(':', remove_spaces($v));
+				$v[0] = trim(strtolower($v[0]));
+				if($v[0] == 'processor') $cpu_num++;
+				if($v[0] == 'bogomips') $bogomips = trim($v[1]);
+			}
+			if(is_array($clocks)) $clocks = implode('', $clocks);
+			$clocks = str_replace(' ', '', $clocks);
+			$tmp = explode('Clocks:', $clocks);
+			$tmp = explode(',', $tmp[1]);
+			for($i=0;$i<count($tmp);$i++) {
+				$piece_now = $tmp[$i];
+				$l_tmp = explode(':', $piece_now);
+				$k = strtolower($l_tmp[0]);
+				$v = $l_tmp[1];
+				$l_clock[$k] = $v;
+			}
+			$res['cpu_mhz']['0'] = str_replace('mhz', '', strtolower($l_clock['cpu']));
+			$res['cpu_num'] = $cpu_num;
+			$res['cpu_bogomips']['0'] = $bogomips;
+			return $res;
 		}
-		if(is_array($clocks)) $clocks = implode('', $clocks);
-		$clocks = str_replace(' ', '', $clocks);
-		$tmp = explode('Clocks:', $clocks);
-		$tmp = explode(',', $tmp[1]);
-		for($i=0;$i<count($tmp);$i++) {
-			$piece_now = $tmp[$i];
-			$l_tmp = explode(':', $piece_now);
-			$k = strtolower($l_tmp[0]);
-			$v = $l_tmp[1];
-			$l_clock[$k] = $v;
-		}
-		$res['cpu_mhz']['0'] = str_replace('mhz', '', strtolower($l_clock['cpu']));
-		$res['cpu_num'] = $cpu_num;
-		$res['cpu_bogomips']['0'] = $bogomips;
-		return $res;
 	} else {
 		switch($os[0]) {
 			case 'FreeBSD':
 				$res['cpu_model']['0']['model'] = get_key('hw.model');
 				$res['cpu_mhz']['0'] = get_key('machdep.tsc_freq') / 1000000;
 				$res['cpu_num'] = get_key('hw.ncpu');
-				#var_dump($res);
 				return $res;
 			break;
 			default:
@@ -111,8 +136,8 @@ function cpuinfo() {
 				if(empty($model[1])) return false;
 				$res['cpu_num'] = count($model[1]);
 				$models = array();
-				foreach(array_count_values($model[1]) as $model_k=>$model_v){
-					$models[] = array('model'=>$model_k,'total'=>$model_v,'key'=>array_search($model_k,$model[1]));
+				foreach( array_count_values($model[1]) as $model_k => $model_v){
+					$models[] = array('model' => $model_k, 'total' => $model_v, 'key' => array_search($model_k,$model[1]));
 				}
 				$res['cpu_model'] = $models;
 				$res['cpu_mhz'] = $mhz[1];
@@ -136,10 +161,9 @@ function uptime() {
 			return $line;
 		break;
 		default:
-			if(!is_readable('/proc/uptime')) return false;
-			return trim(current(explode(' ', file_get_contents('/proc/uptime'))));
+			return (is_readable('/proc/uptime')) ? trim(current(explode(' ', file_get_contents('/proc/uptime')))) : false;
+		break;
 	}
-	
 }
 
 function meminfo() {
@@ -159,6 +183,7 @@ function meminfo() {
 			$res['SwapTotal'] = preg_match('/SwapTotal\s*\:\s*(\d+)/i', $meminfo, $SwapTotal) ? (int)$SwapTotal[1] : 0;
 			$res['SwapFree'] = preg_match('/SwapFree\s*\:\s*(\d+)/i', $meminfo, $SwapFree) ? (int)$SwapFree[1] : 0;
 			return $res;
+		break;
 	}
 }
 
@@ -181,6 +206,7 @@ function loadavg() {
 			if(!is_readable('/proc/loadavg')) return false;
 			$loadavg = explode(' ', file_get_contents('/proc/loadavg'));
 			return implode(' ', current(array_chunk($loadavg, 4)));
+		break;
 	}
 }
 
@@ -347,7 +373,7 @@ function GetCpuPercentages($stat1, $stat2) {
 		$dif['softirq'] = $stat2[$i]['softirq'] - $stat1[$i]['softirq'];
 		$total = array_sum($dif);
 		$cpu = array();
-		foreach($dif as $x=>$y) $cpu[$x] = round($y / $total * 100, 2);
+		foreach($dif as $x => $y) if($total != 0) $cpu[$x] = round($y / $total * 100, 2);
 		$cpus['cpu'.$i] = $cpu;
 	}
 	return $cpus;
@@ -363,7 +389,7 @@ function corestat() {
 
 $http_worker->onMessage = function($connection, $data) {
 	global $os;
-	echo json_encode($data)."\n";
+	#echo json_encode($data)."\n";
 	if(isset($data['get']['act'])) {
 		switch($data['get']['act']) {
 			case 'integer_test':
@@ -550,7 +576,7 @@ function ForDight(Dight,How)
 	$MemRealPercent = round($MemRealUsed / $meminfo['MemTotal'] * 100, 2);
 	$CachedPercent = round($meminfo['Cached'] / $meminfo['MemTotal'] * 100, 2);
 	$SwapUsed = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
-	$SwapUsedPercent = round($SwapUsed / $meminfo['SwapTotal'] * 100, 2);
+	$SwapUsedPercent = ($meminfo['SwapTotal'] > 0) ? round($SwapUsed / $meminfo['SwapTotal'] * 100, 2) : '';
 	
 	$day = floor(uptime() / 86400).'天';
 	$hour = floor((uptime() % 86400) / 3600).'小时';
@@ -575,7 +601,7 @@ function ForDight(Dight,How)
 	$smtp_enable = get_cfg_var("SMTP") ? '<font color="green">√</font>' : '<font color="red">×</font>';
 	$smtp_addr = get_cfg_var("SMTP") ? get_cfg_var("SMTP") : '<font color="red">×</font>';
 
-	$network = '';
+	$network = "\n";
 	if (false !== ($strs = @file("/proc/net/dev"))) {
 		$network .= '<table>'."\n";
 		$network .= '<tr><th colspan="5">网络使用状况</th></tr>'."\n";
@@ -589,10 +615,10 @@ function ForDight(Dight,How)
 			$network .= '<td width="14%">实时: <font color=\'#CC0000\'><span id="NetOutSpeed'.$i.'">0B/s</span></font></td>'."\n";
 			$network .= '</tr>'."\n";
 		}
-		$network .= '</table>'."\n";
+		$network .= '</table>'."\n\n";
 	}
 	
-	if(function_exists(gd_info)) {
+	if(extension_loaded('gd')) {
 		$gd_info = @gd_info();
 		$gd_info = $gd_info["GD Version"];
 	} else {
