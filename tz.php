@@ -69,9 +69,7 @@ function cpuinfo() {
 	var_dump($machine);
 	$arch_embedded = array('armv6l','armv7l','armv8l','mips','mipsel','aarch64');
 	if(in_array($machine, $arch_embedded)) {
-		echo 2;
 		if(is_file('/system/build.prop')) {
-			echo 3;
 			$cpu_num = 0;
 			$cpuinfo = file_get_contents('/proc/cpuinfo');
 			$l_cpuinfo = explode("\n", $cpuinfo);
@@ -84,7 +82,6 @@ function cpuinfo() {
 			$res['cpu_model']['0']['model'] = $cpuname;
 			$res['cpu_mhz']['0'] = file_get_contents('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq') / 1000;
 			$res['cpu_num'] = $cpu_num;
-			var_dump($res);
 			return $res;
 		} else {
 			$l_clock = array();
