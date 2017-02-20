@@ -1,5 +1,7 @@
 <?php
 $filename = array('autoload.php','Autoloader.php');
+$bin_name = is_readable('/proc/self/exe') ? readlink('/proc/self/exe') : 'php';
+
 for($i=0;$i<count($filename);$i++) {
 	$real_filename = __DIR__ .'/vendor/'.$filename[$i];
 	if(is_readable($real_filename)) {
@@ -354,7 +356,7 @@ function GetCoreInformation() {
 	foreach($data as $line) {
 		if(preg_match('/^cpu[0-9]/', $line)) {
 			$info = explode(' ', $line);
-			$cores[] = array('user'=>$info[1],'nice'=>$info[2],'sys' => $info[3],'idle'=>$info[4],'iowait'=>$info[5],'irq' => $info[6],'softirq' => $info[7]);
+			$cores[] = array('user' => $info[1],'nice' => $info[2],'sys' => $info[3],'idle' => $info[4],'iowait' => $info[5],'irq' => $info[6],'softirq' => $info[7]);
 		}
 	}
 	return $cores;
@@ -395,13 +397,14 @@ function svr_test_result($provider, $int_result, $float_result, $io_result, $cpu
 
 function _get_workerman_status() {
 	$filename = sys_get_temp_dir().'/workerman.status';
-	$status = is_readable($filename) ? str_replace(' ', '&nbsp;', file_get_contents($filename)) : "Unable to open $filename\nWhy not try php tz.php status?";
+	$status = is_readable($filename) ? file_get_contents($filename) : "Unable to open $filename\nWhy not try php tz.php status?";
 	$status = explode("\n", $status);
-	return implode('<br/>', $status);
+	foreach($status as $k => $v) $status[$k] = rtrim($v);
+	return str_replace(' ', '&nbsp;', implode('<br/>', $status));
 }
 
 $http_worker->onMessage = function($connection, $data) {
-	global $os;
+	global $os,$bin_name;
 	#echo json_encode($data)."\n";
 	if(isset($data['get']['act'])) {
 		switch($data['get']['act']) {
@@ -418,7 +421,6 @@ $http_worker->onMessage = function($connection, $data) {
 		}
 	}
 
-	$bin_name = readlink('/proc/self/exe');
 	if(isset($data['get']['act']) and $data['get']['act'] == 'rt') {
 		$json = htmlspecialchars($data['get']['callback']).'('.json_encode(rt($data['server']['REMOTE_ADDR'])).')';
 		$connection->send($json);
@@ -432,7 +434,7 @@ $http_worker->onMessage = function($connection, $data) {
 		$connection->send($functions);
 	} else {
 		$time_start = microtime(true);
-		$os = explode(" ", php_uname());
+		$os = explode(' ', php_uname());
 		$get_loaded_extensions = get_loaded_extensions();
 
 		$redis_support = in_array('redis', $get_loaded_extensions) ? '<font color="green">√</font>' : '<font color="red">×</font>';
