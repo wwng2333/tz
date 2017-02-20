@@ -1,17 +1,23 @@
 <?php
-use Workerman\Worker;
-if(is_readable(__DIR__ . '/vendor/autoload.php')) {
-	require_once __DIR__ . '/vendor/autoload.php';
-} elseif(is_readable(__DIR__ . '/vendor/Autoloader.php')) {
-	require_once __DIR__ . '/vendor/Autoloader.php';
-} else {
-	die("You need to install workerman!\nCheckout https://github.com/walkor/Workerman\n");
+$filename = array('autoload.php','Autoloader.php');
+for($i=0;$i<count($filename);$i++) {
+	$real_filename = __DIR__ .'/vendor/'.$filename[$i];
+	if(is_readable($real_filename)) {
+		require_once $real_filename;
+		break;
+	} elseif(isset($filename[$i + 1])) {
+		continue;
+	} else {
+		die("You need to install workerman!\nCheckout https://github.com/walkor/Workerman\n");
+	}
 }
+
+use Workerman\Worker;
 
 #Worker::$stdoutFile = 'tz.log';
 $http_worker = new Worker("http://0.0.0.0:2345");
 $http_worker->name = 'Proberv';
-$http_worker->user = 'nobody';
+$http_worker->user = 'root';
 $http_worker->count = 3;
 
 function writeover($filename, $data, $method = 'w', $chmod = 0) {
@@ -66,7 +72,6 @@ function cpuinfo() {
 	$os_real = explode(' ', php_uname());
 	$os_count = count($os_real) - 1;
 	$machine = $os_real[$os_count];
-	var_dump($machine);
 	$arch_embedded = array('armv6l','armv7l','armv8l','mips','mipsel','aarch64');
 	if(in_array($machine, $arch_embedded)) {
 		if(is_file('/system/build.prop')) {
@@ -80,7 +85,7 @@ function cpuinfo() {
 				if($v[0] == 'Hardware') $cpuname = $v[1];
 			}
 			$res['cpu_model']['0']['model'] = $cpuname;
-			$res['cpu_mhz']['0'] = file_get_contents('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq') / 1000;
+			$res['cpu_mhz']['0'] = number_format((file_get_contents('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq') / 1000), 3, '.', '');
 			$res['cpu_num'] = $cpu_num;
 			return $res;
 		} else {
@@ -195,7 +200,6 @@ function loadavg() {
 				$result = implode('', $result);
 				$temp = explode(': ', $result);
 				$loadavg = str_replace(',', '', $temp[1]);
-				#var_dump($loadavg);
 				return $loadavg;
 			}
 		break;
@@ -384,6 +388,18 @@ function corestat() {
 	return $data['cpu0']['user']."%us,  ".$data['cpu0']['sys']."%sy,  ".$data['cpu0']['nice']."%ni, ".$data['cpu0']['idle']."%id,  ".$data['cpu0']['iowait']."%wa,  ".$data['cpu0']['irq']."%irq,  ".$data['cpu0']['softirq']."%softirq";
 }
 
+function svr_test_result($provider, $int_result, $float_result, $io_result, $cpu_num, $cpu_name, $cpu_freq) {
+	$cpu_freq = number_format($cpu_freq, 2, '.', '');
+	return "<tr align=\"center\">\n<td align=\"left\">".$provider."</td>\n<td>".$int_result."秒</td>\n<td>".$float_result."秒</td>\n<td>".$io_result."秒</td>\n<td align=\"left\">".$cpu_num." x ".$cpu_name." @ ".$cpu_freq."GHz</td>\n</tr>";
+}
+
+function _get_workerman_status() {
+	$filename = sys_get_temp_dir().'/workerman.status';
+	$status = str_replace(' ', '&nbsp;', file_get_contents($filename));
+	$status = explode("\n", $status);
+	return implode('<br/>', $status);
+}
+
 $http_worker->onMessage = function($connection, $data) {
 	global $os;
 	#echo json_encode($data)."\n";
@@ -546,6 +562,7 @@ function ForDight(Dight,How)
 	$(\"#barswapPercent\").width(dataJSON.barswapPercent);
 	$(\"#corestat\").html(dataJSON.corestat);
 	$(\"#online_num\").html(dataJSON.online_num);
+	
 ".$ajax."
 }
 </script>
@@ -748,6 +765,15 @@ function ForDight(Dight,How)
 
 '.$network.'
 	
+<table width="100%" cellpadding="3" cellspacing="0" align="center">
+  <tr>
+	<th colspan="4">Workerman Status</th>
+  </tr>
+  <tr>
+	<td colspan="4"><span class="w_small">'._get_workerman_status().'</td>
+  </tr>
+</table>
+
 <table width="100%" cellpadding="3" cellspacing="0" align="center">
   <tr>
 	<th colspan="4">PHP已编译模块检测</th>
@@ -1001,49 +1027,14 @@ function ForDight(Dight,How)
 		<td width="17%">浮点运算能力检测<br />(圆周率开平方300万次)</td>
 		<td width="17%">数据I/O能力检测<br />(读取10K文件1万次)</td>
 		<td width="30%">CPU信息</td>
-	  </tr>
-	  <tr align="center">
-		<td align="left">美国 LinodeVPS</td>
-		<td>0.357秒</td>
-		<td>0.802秒</td>
-		<td>0.023秒</td>
-		<td align="left">4 x Xeon L5520 @ 2.27GHz</td>
-	  </tr> 
-	  <tr align="center">
-		<td align="left">美国 PhotonVPS.com</td>
-		<td>0.431秒</td>
-		<td>1.024秒</td>
-		<td>0.034秒</td>
-		<td align="left">8 x Xeon E5520 @ 2.27GHz</td>
-	  </tr>
-	  <tr align="center">
-		<td align="left">德国 SpaceRich.com</td>
-		<td>0.421秒</td>
-		<td>1.003秒</td>
-		<td>0.038秒</td>
-		<td align="left">4 x Core i7 920 @ 2.67GHz</td>
-	  </tr>
-	  <tr align="center">
-		<td align="left">美国 RiZie.com</td>
-		<td>0.521秒</td>
-		<td>1.559秒</td>
-		<td>0.054秒</td>
-		<td align="left">2 x Pentium4 3.00GHz</td>
-	  </tr>
-	  <tr align="center">
-		<td align="left">埃及 CitynetHost.com</a></td>
-		<td>0.343秒</td>
-		<td>0.761秒</td>
-		<td>0.023秒</td>
-		<td align="left">2 x Core2Duo E4600 @ 2.40GHz</td>
-	  </tr>
-	  <tr align="center">
-		<td align="left">美国 IXwebhosting.com</td>
-		<td>0.535秒</td>
-		<td>1.607秒</td>
-		<td>0.058秒</td>
-		<td align="left">4 x Xeon E5530 @ 2.40GHz</td>
-	  </tr>
+	  </tr>'.
+	  svr_test_result('美国 LinodeVPS', 0.357, 0.802, 0.023, 4, 'Xeon L5520', 2.27).
+	  svr_test_result('美国 PhotonVPS.com', 0.431, 1.024, 0.034, 4, 'Xeon E5520', 2.27).
+	  svr_test_result('德国 SpaceRich.com', 0.421, 1.003, 0.038, 2, 'Core i7 920', 2.67).
+	  svr_test_result('美国 RiZie.com', 0.521, 1.559, 0.054, 1, 'Pentium4', 3.00).
+	  svr_test_result('埃及 CitynetHost.com', 0.343, 0.761, 0.023, 2, 'Core2Duo E4600', 2.40).
+	  svr_test_result('美国 IXwebhosting.com', 0.535, 1.607, 0.058, 4, 'Xeon E5530', 2.40).
+	  '
 	  <tr align="center">
 		<td>本台服务器</td>
 		<td><span id="integer_test">未测试</span><br><button title="1+1 运算 300 万次" onclick="caola_test(\'integer_test\');">整型测试</button></td>
