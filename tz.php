@@ -395,7 +395,7 @@ function svr_test_result($provider, $int_result, $float_result, $io_result, $cpu
 
 function _get_workerman_status() {
 	$filename = sys_get_temp_dir().'/workerman.status';
-	$status = str_replace(' ', '&nbsp;', file_get_contents($filename));
+	$status = is_readable($filename) ? str_replace(' ', '&nbsp;', file_get_contents($filename)) : "Unable to open $filename\nWhy not try php tz.php status?";
 	$status = explode("\n", $status);
 	return implode('<br/>', $status);
 }
