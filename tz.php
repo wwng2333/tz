@@ -76,50 +76,16 @@ function cpuinfo() {
 	$machine = $os_real[$os_count];
 	$arch_embedded = array('armv6l','armv7l','armv8l','mips','mipsel','aarch64');
 	if(in_array($machine, $arch_embedded)) {
-		if(is_file('/system/build.prop')) {
-			$cpu_num = 0;
-			$cpuinfo = file_get_contents('/proc/cpuinfo');
-			$l_cpuinfo = explode("\n", $cpuinfo);
-			foreach($l_cpuinfo as $k => $v) {
-				$v = explode(':', remove_spaces($v));
-				$v[0] = trim($v[0]);
-				if($v[0] == 'processor') $cpu_num++;
-				if($v[0] == 'Hardware') $cpuname = $v[1];
-			}
-			$res['cpu_model']['0']['model'] = $cpuname;
-			$res['cpu_mhz']['0'] = number_format((file_get_contents('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq') / 1000), 3, '.', '');
-			$res['cpu_num'] = $cpu_num;
+		if(is_file('/system/build.prop')) { //Android
+			$res['cpu_model']['0']['model'] = cpuinfo_get('cpuname');
+			$res['cpu_mhz']['0'] = android_get_cpu_freq();
+			$res['cpu_num'] = cpuinfo_get('cpu_num');
 			return $res;
-		} else {
-			$l_clock = array();
-			exec('dmesg | grep Clocks', $clocks);
-			exec('dmesg | grep SoC', $cpuname);
-			if(is_array($cpuname)) $cpuname = implode('', $cpuname);
-			$tmp = explode(':', $cpuname);
-			$res['cpu_model']['0']['model'] = trim($tmp[1]);
-			$cpuinfo = file_get_contents('/proc/cpuinfo');
-			$l_cpuinfo = explode("\n", $cpuinfo);
-			$cpu_num = 0;
-			foreach($l_cpuinfo as $k => $v) {
-				$v = explode(':', remove_spaces($v));
-				$v[0] = trim(strtolower($v[0]));
-				if($v[0] == 'processor') $cpu_num++;
-				if($v[0] == 'bogomips') $bogomips = trim($v[1]);
-			}
-			if(is_array($clocks)) $clocks = implode('', $clocks);
-			$clocks = str_replace(' ', '', $clocks);
-			$tmp = explode('Clocks:', $clocks);
-			$tmp = explode(',', $tmp[1]);
-			for($i=0;$i<count($tmp);$i++) {
-				$piece_now = $tmp[$i];
-				$l_tmp = explode(':', $piece_now);
-				$k = strtolower($l_tmp[0]);
-				$v = $l_tmp[1];
-				$l_clock[$k] = $v;
-			}
-			$res['cpu_mhz']['0'] = str_replace('mhz', '', strtolower($l_clock['cpu']));
-			$res['cpu_num'] = $cpu_num;
-			$res['cpu_bogomips']['0'] = $bogomips;
+		} else { //busybox
+			$res['cpu_model']['0']['model'] = cpuinfo_get('cpuname') ? cpuinfo_get('cpuname') : dmesg_get_cpu_name();
+			$res['cpu_mhz']['0'] = dmesg_get_cpu_freq();
+			$res['cpu_num'] = cpuinfo_get('cpu_num');
+			$res['cpu_bogomips']['0'] = cpuinfo_get('bogomips');
 			return $res;
 		}
 	} else {
@@ -150,6 +116,74 @@ function cpuinfo() {
 				return $res;
 			break;
 		}
+	}
+}
+
+function dmesg_get_cpu_freq() {
+	$l_clock = array();
+	exec('dmesg | grep Clocks', $clocks, $errno);
+	if($errno > 0) return false;
+	if(is_array($clocks)) $clocks = implode('', $clocks);
+	$clocks = str_replace(' ', '', $clocks);
+	$tmp = explode('Clocks:', $clocks);
+	$tmp = explode(',', $tmp[1]);
+	if(!isset($tmp[1])) return false;
+	for($i=0;$i<count($tmp);$i++) {
+		$piece_now = $tmp[$i];
+		$l_tmp = explode(':', $piece_now);
+		$k = strtolower($l_tmp[0]);
+		$v = $l_tmp[1];
+		$l_clock[$k] = $v;
+	}
+	return (isset($l_clock['cpu'])) ? (float)$l_clock['cpu'] : false;
+}
+
+function dmesg_get_cpu_name() {
+	exec('dmesg | grep SoC', $cpuname);
+	if(is_array($cpuname)) $cpuname = implode('', $cpuname);
+	$tmp = explode(':', $cpuname);
+	return (isset($tmp[1])) ? trim($tmp[1]) : false;
+}
+
+function android_get_cpu_freq() {
+	$file = '/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq';
+	return is_readable($file) ? number_format((file_get_contents($file) / 1000), 3, '.', '') : false;
+}
+
+function cpuinfo_get($what) {
+	global $__n_cpuinfo,$___cached,$cpu_num;
+	if(!isset($cpu_num)) $cpu_num = 0;
+	$file = '/proc/cpuinfo';
+	if(isset($___cached)) {
+		goto result_return;
+	} else {
+		$__l_cpuinfo = explode("\n", rtrim(file_get_contents($file)));
+		for($i=0;$i<count($__l_cpuinfo);$i++) {
+			$tmp = explode(':', $__l_cpuinfo[$i]);
+			$key = trim($tmp[0]);
+			if($key == 'processor') $cpu_num++;
+			if(strtolower($key) == 'bogomips') $key = 'bogomips';
+			if(count($tmp > 2)) {
+				unset($tmp[0]);
+				$val = trim(implode(':', $tmp));
+			} else {
+				$val = trim($tmp[1]);
+			}
+			$__n_cpuinfo[$key] = $val;
+		}
+		if(isset($__n_cpuinfo['bogomips'])) $___cached['bogomips'] = $__n_cpuinfo['bogomips'];
+		if(isset($__n_cpuinfo['Hardware'])) $___cached['cpuname'] = $__n_cpuinfo['Hardware'];
+		if(isset($__n_cpuinfo['system type'])) $___cached['cpuname'] = $__n_cpuinfo['system type'];
+		goto result_return;
+	}
+	result_return:
+	switch($what) {
+		case 'cpu_num':
+			return $cpu_num;
+		break;
+		default:
+			return (isset($___cached[$what])) ? $___cached[$what] : false;
+		break;
 	}
 }
 
@@ -305,7 +339,7 @@ function rt($client_ip) {
 	$return = array();
 	$return['useSpace'] = (float)$dt - (float)$df.get_format_level($dt);
 	$return['freeSpace'] = (float)$df.get_format_level($df);
-	$return['hdPercent'] = (floatval($dt)!=0) ? round($return['useSpace'] / $dt * 100, 2) : 0;
+	$return['hdPercent'] = (floatval($dt)!=0) ? round((float)$return['useSpace'] / (float)$dt * 100, 2) : 0;
 	$return['barhdPercent'] = $return['hdPercent'].'%';	
 	$return['TotalMemory'] = formatsize($meminfo['MemTotal'], 1);
 	$return['UsedMemory'] = formatsize($meminfo['MemTotal'] - $meminfo['MemFree'], 1);
@@ -316,11 +350,11 @@ function rt($client_ip) {
 	$return['swapUsed'] = formatsize($meminfo['SwapTotal'] - $meminfo['SwapFree'], 1);
 	$return['swapFree'] = formatsize($meminfo['SwapFree'], 1);
 	$return['loadAvg'] = loadavg();
-	$uptime = uptime();
-	$day = floor($uptime / 86400).'天';
-	$hour = floor(($uptime % 86400) / 3600).'小时';
-	$min = floor(($uptime % 3600) / 60).'分钟';
-	$sec = floor($uptime % 60).'秒';
+	$cached_uptime = uptime();
+	$day = floor($cached_uptime / 86400).'天';
+	$hour = floor(($cached_uptime % 86400) / 3600).'小时';
+	$min = floor(($cached_uptime % 3600) / 60).'分钟';
+	$sec = floor($cached_uptime % 60).'秒';
 	$return['uptime'] = $day.$hour.$min.$sec;
 	$return['stime'] = date('Y-m-d H:i:s');
 	$return['memRealUsed'] = formatsize($meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Cached'] - $meminfo['Buffers'], 1);
@@ -450,7 +484,7 @@ $http_worker->onMessage = function($connection, $data) {
 		$dt = formatsize(@disk_total_space(".")); //总
 		$df = formatsize(@disk_free_space(".")); //可用
 		$du = (float)$dt - (float)$df.get_format_level($dt); //已用
-		$hdPercent = round ($du / $dt * 100 , 2);
+		$hdPercent = round((float)$du / (float)$dt * 100 , 2);
 		
 		$strs = @file("/proc/net/dev"); 
 		$js = '';
@@ -594,10 +628,11 @@ function ForDight(Dight,How)
 	$SwapUsed = $meminfo['SwapTotal'] - $meminfo['SwapFree'];
 	$SwapUsedPercent = ($meminfo['SwapTotal'] > 0) ? round($SwapUsed / $meminfo['SwapTotal'] * 100, 2) : '';
 	
-	$day = floor(uptime() / 86400).'天';
-	$hour = floor((uptime() % 86400) / 3600).'小时';
-	$min = floor((uptime() % 3600) / 60).'分钟';
-	$sec = floor(uptime() % 60).'秒';
+	$cached_uptime = uptime();
+	$day = floor($cached_uptime / 86400).'天';
+	$hour = floor(($cached_uptime % 86400) / 3600).'小时';
+	$min = floor(($cached_uptime % 3600) / 60).'分钟';
+	$sec = floor($cached_uptime % 60).'秒';
 	$uptime = $day.$hour.$min.$sec;
 	
 	$disFuns = get_cfg_var("disable_functions");
@@ -664,7 +699,8 @@ function ForDight(Dight,How)
 		' : '';
 
 	if(!isset($data['server']['SERVER_PORT'])) $data['server']['SERVER_PORT'] = 80;
-	$cpu = $cpuinfo['cpu_model']['0']['model'].' | 频率:'.$cpuinfo['cpu_mhz']['0'];
+	$cpu = $cpuinfo['cpu_model']['0']['model'];
+	if($cpuinfo['cpu_mhz']['0']) $cpu .= ' | 频率:'.$cpuinfo['cpu_mhz']['0'];
 	if(isset($cpuinfo['cpu_cache']['0'])) $cpu .= ' | 二级缓存:'.$cpuinfo['cpu_cache']['0'];
 	if(isset($cpuinfo['cpu_bogomips']['0'])) $cpu .= ' | Bogomips:'.$cpuinfo['cpu_bogomips']['0'].' × '.$cpuinfo['cpu_num'];
 	$test = $head.'
