@@ -34,7 +34,7 @@ function writeover($filename, $data, $method = 'w', $chmod = 0) {
 
 function count_online_num($time, $ip) {
 	if($ip != '') {
-		$fileCount = 'online.json';
+		$fileCount = sys_get_temp_dir().'online.json';
 		$gap = 60; //一分钟
 		if (!file_exists($fileCount)) {
 			$arr[$ip] = $time;
@@ -135,7 +135,12 @@ function dmesg_get_cpu_freq() {
 		$v = $l_tmp[1];
 		$l_clock[$k] = $v;
 	}
-	return (isset($l_clock['cpu'])) ? (float)$l_clock['cpu'] : false;
+	if(isset($l_clock['cpu'])) {
+		$freq = (float)$l_clock['cpu'];
+		return number_format($freq, 3, '.', '');
+	} else {
+		return false;
+	}
 }
 
 function dmesg_get_cpu_name() {
@@ -431,10 +436,16 @@ function svr_test_result($provider, $int_result, $float_result, $io_result, $cpu
 
 function _get_workerman_status() {
 	$filename = sys_get_temp_dir().'/workerman.status';
-	$status = is_readable($filename) ? file_get_contents($filename) : "Unable to open $filename\nWhy not try php tz.php status?";
-	$status = explode("\n", $status);
-	foreach($status as $k => $v) $status[$k] = rtrim($v);
-	return str_replace(' ', '&nbsp;', implode('<br/>', $status));
+	if(is_readable($filename)) {
+		$status = file_get_contents($filename);
+		$status = explode("\n", $status);
+		foreach($status as $k => $v) $status[$k] = rtrim($v);
+		$header = "<table width=\"100%\" cellpadding=\"3\" cellspacing=\"0\" align=\"center\">\n<tr>\n<th colspan=\"4\">Workerman Status</th>\n</tr>\n<tr>\n<td colspan=\"4\"><span class=\"w_small\">";
+		$footer = "</td>\n</tr>\n</table>";
+		return $header.str_replace(' ', '&nbsp;', implode('<br/>', $status)).$footer;
+	} else {
+		return '';
+	}
 }
 
 $http_worker->onMessage = function($connection, $data) {
@@ -801,16 +812,7 @@ function ForDight(Dight,How)
 	</tr>
 </table>
 
-'.$network.'
-	
-<table width="100%" cellpadding="3" cellspacing="0" align="center">
-  <tr>
-	<th colspan="4">Workerman Status</th>
-  </tr>
-  <tr>
-	<td colspan="4"><span class="w_small">'._get_workerman_status().'</td>
-  </tr>
-</table>
+'.$network._get_workerman_status().'
 
 <table width="100%" cellpadding="3" cellspacing="0" align="center">
   <tr>
