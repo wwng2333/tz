@@ -34,7 +34,7 @@ function writeover($filename, $data, $method = 'w', $chmod = 0) {
 
 function count_online_num($time, $ip) {
 	if($ip != '') {
-		$fileCount = sys_get_temp_dir().'online.json';
+		$fileCount = sys_get_temp_dir().'/online.json';
 		$gap = 60; //一分钟
 		if (!file_exists($fileCount)) {
 			$arr[$ip] = $time;
