@@ -291,6 +291,20 @@ function io_test() {
 	return $timeEnd - $timeStart;
 }
 
+function formatsize_byte($byte) {
+	$size = $byte / 8;
+	if($size < 0) {
+		return '0B';
+	} else {
+		$danwei = array('B','K','M','G','T','P');
+		while($size > 1024) {
+			$size = $size / 1024;
+			$key++;
+		}
+		return round($size, 3).' '.$danwei[$key];
+	}
+}
+
 function formatsize($size,$key = 0) {
 	if($size < 0) {
 		return '0B';
@@ -300,8 +314,7 @@ function formatsize($size,$key = 0) {
 			$size = $size / 1024;
 			$key++;
 		}
-		$return = round($size, 3).' '.$danwei[$key];
-		return $return;
+		return round($size, 3).' '.$danwei[$key];
 	}
 }
 
@@ -329,68 +342,82 @@ function get_format_level($string) {
 }
 
 function rt($client_ip) {
+	global $os;
 	$meminfo = meminfo();
 	$dt = formatsize(@disk_total_space(".")); //总
 	$df = formatsize(@disk_free_space(".")); //可用
-	
-	$strs = @file("/proc/net/dev"); 
-	for($i=2; $i < count($strs); $i++ ) {
-		preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
-		$NetOutSpeed[$i] = $info[10][0];
-		$NetInputSpeed[$i] = $info[2][0];
-		$NetInput[$i] = formatsize($info[2][0]);
-		$NetOut[$i]  = formatsize($info[10][0]);
-	}
-	$return = array();
 	$return['useSpace'] = (float)$dt - (float)$df.get_format_level($dt);
 	$return['freeSpace'] = (float)$df.get_format_level($df);
 	$return['hdPercent'] = (floatval($dt)!=0) ? round((float)$return['useSpace'] / (float)$dt * 100, 2) : 0;
 	$return['barhdPercent'] = $return['hdPercent'].'%';	
-	$return['TotalMemory'] = formatsize($meminfo['MemTotal'], 1);
-	$return['UsedMemory'] = formatsize($meminfo['MemTotal'] - $meminfo['MemFree'], 1);
-	$return['FreeMemory'] = formatsize($meminfo['MemFree'], 1);
-	$return['CachedMemory'] = formatsize($meminfo['Cached'], 1);
-	$return['Buffers'] = formatsize($meminfo['Buffers'], 1);
-	$return['TotalSwap'] = formatsize($meminfo['SwapTotal'], 1);
-	$return['swapUsed'] = formatsize($meminfo['SwapTotal'] - $meminfo['SwapFree'], 1);
-	$return['swapFree'] = formatsize($meminfo['SwapFree'], 1);
-	$return['loadAvg'] = loadavg();
-	$cached_uptime = uptime();
-	$day = floor($cached_uptime / 86400).'天';
-	$hour = floor(($cached_uptime % 86400) / 3600).'小时';
-	$min = floor(($cached_uptime % 3600) / 60).'分钟';
-	$sec = floor($cached_uptime % 60).'秒';
-	$return['uptime'] = $day.$hour.$min.$sec;
 	$return['stime'] = date('Y-m-d H:i:s');
-	$return['memRealUsed'] = formatsize($meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Cached'] - $meminfo['Buffers'], 1);
-	$return['memRealFree'] = formatsize($meminfo['MemFree'] + $meminfo['Cached'] + $meminfo['Buffers'], 1);
-	$return['memRealPercent'] = round(($meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Cached'] - $meminfo['Buffers']) / $meminfo['MemTotal'] * 100, 2);
-	$return['memPercent'] = round(($meminfo['MemTotal'] - $meminfo['MemFree']) / $meminfo['MemTotal'] * 100, 2);
-	$return['barmemPercent'] = $return['memPercent'].'%';
-	$return['barmemRealPercent'] = $return['memRealPercent'].'%';
-	$return['memCachedPercent'] = round($meminfo['Cached'] / $meminfo['MemTotal'] * 100, 2);
-	$return['barmemCachedPercent'] = $return['memCachedPercent'].'%';
-	if($meminfo['SwapTotal'] > 0) {
-		$return['swapPercent'] = round(($meminfo['SwapTotal'] - $meminfo['SwapFree']) / $meminfo['SwapTotal'] * 100, 2);
-		$return['barswapPercent'] = $return['swapPercent'].'%';
-	} else {
-		$return['swapPercent'] = false;
+	
+	switch($os[0]) {
+		case 'Windows':
+			$netstat = windows_netstat_get();
+			$return['NetInputSpeed'] = $netstat[1] / 8;
+			$return['NetOutSpeed'] = $netstat[2] / 8;
+			$return['NetInput'] = formatsize_byte($netstat[1]);
+			$return['NetOut'] = formatsize_byte($netstat[2]);
+			return $return;
+		break;
+		default:
+			$strs = @file("/proc/net/dev"); 
+			for($i=2; $i < count($strs); $i++ ) {
+				preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
+				$NetOutSpeed[$i] = $info[10][0];
+				$NetInputSpeed[$i] = $info[2][0];
+				$NetInput[$i] = formatsize($info[2][0]);
+				$NetOut[$i]  = formatsize($info[10][0]);
+			}
+			$return = array();
+			$return['TotalMemory'] = formatsize($meminfo['MemTotal'], 1);
+			$return['UsedMemory'] = formatsize($meminfo['MemTotal'] - $meminfo['MemFree'], 1);
+			$return['FreeMemory'] = formatsize($meminfo['MemFree'], 1);
+			$return['CachedMemory'] = formatsize($meminfo['Cached'], 1);
+			$return['Buffers'] = formatsize($meminfo['Buffers'], 1);
+			$return['TotalSwap'] = formatsize($meminfo['SwapTotal'], 1);
+			$return['swapUsed'] = formatsize($meminfo['SwapTotal'] - $meminfo['SwapFree'], 1);
+			$return['swapFree'] = formatsize($meminfo['SwapFree'], 1);
+			$return['loadAvg'] = loadavg();
+			$cached_uptime = uptime();
+			$day = floor($cached_uptime / 86400).'天';
+			$hour = floor(($cached_uptime % 86400) / 3600).'小时';
+			$min = floor(($cached_uptime % 3600) / 60).'分钟';
+			$sec = floor($cached_uptime % 60).'秒';
+			$return['uptime'] = $day.$hour.$min.$sec;
+			$return['memRealUsed'] = formatsize($meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Cached'] - $meminfo['Buffers'], 1);
+			$return['memRealFree'] = formatsize($meminfo['MemFree'] + $meminfo['Cached'] + $meminfo['Buffers'], 1);
+			$return['memRealPercent'] = round(($meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Cached'] - $meminfo['Buffers']) / $meminfo['MemTotal'] * 100, 2);
+			$return['memPercent'] = round(($meminfo['MemTotal'] - $meminfo['MemFree']) / $meminfo['MemTotal'] * 100, 2);
+			$return['barmemPercent'] = $return['memPercent'].'%';
+			$return['barmemRealPercent'] = $return['memRealPercent'].'%';
+			$return['memCachedPercent'] = round($meminfo['Cached'] / $meminfo['MemTotal'] * 100, 2);
+			$return['barmemCachedPercent'] = $return['memCachedPercent'].'%';
+			if($meminfo['SwapTotal'] > 0) {
+				$return['swapPercent'] = round(($meminfo['SwapTotal'] - $meminfo['SwapFree']) / $meminfo['SwapTotal'] * 100, 2);
+				$return['barswapPercent'] = $return['swapPercent'].'%';
+			} else {
+				$return['swapPercent'] = false;
+			}
+			$return['corestat'] = corestat();
+			for($x=2;$x<=count($strs);$x++) {
+				if(isset($NetOut[$x])) {
+					$return['NetOut'.$x] = $NetOut[$x];
+					$return['NetInput'.$x] = $NetInput[$x];
+					$return['NetOutSpeed'.$x] = $NetOutSpeed[$x];
+					$return['NetInputSpeed'.$x] = $NetInputSpeed[$x];
+				}
+			}
+			$return['online_num'] = count_online_num(time(), $client_ip);
+			return $return;
 	}
-	$return['corestat'] = corestat();
-	for($x=2;$x<=count($strs);$x++) {
-		if(isset($NetOut[$x])) {
-			$return['NetOut'.$x] = $NetOut[$x];
-			$return['NetInput'.$x] = $NetInput[$x];
-			$return['NetOutSpeed'.$x] = $NetOutSpeed[$x];
-			$return['NetInputSpeed'.$x] = $NetInputSpeed[$x];
-		}
-	}
-	$return['online_num'] = count_online_num(time(), $client_ip);
-	return $return;
 }
 
 function GetCoreInformation() {
-	$data = file('/proc/stat');
+	$file = '/proc/stat';
+	if(!is_readable($file)) return false;
+	$data = file($file);
 	$cores = array();
 	foreach($data as $line) {
 		if(preg_match('/^cpu[0-9]/', $line)) {
@@ -448,11 +475,26 @@ function _get_workerman_status() {
 	}
 }
 
+function windows_netstat_get() {
+	exec('netstat -e', $result, $errno);
+	if($errno > 0) return false;
+	for($i=0;$i<count($result);$i++) {
+		$result[$i] = explode(' ', remove_spaces($result[$i]));
+	}
+	foreach($result as $array) {
+		if($array[0] == 'Bytes') {
+			return $array;
+		} else {
+			continue;
+		}
+	}
+}
+
 $http_worker->onMessage = function($connection, $data) {
 	global $os,$bin_name;
 	#echo json_encode($data)."\n";
-	if(isset($data['get']['act'])) {
-		switch($data['get']['act']) {
+	if(isset($_GET['act'])) {
+		switch($_GET['act']) {
 			case 'integer_test':
 				$connection->send(integer_test());
 			break;
@@ -466,8 +508,8 @@ $http_worker->onMessage = function($connection, $data) {
 		}
 	}
 
-	if(isset($data['get']['act']) and $data['get']['act'] == 'rt') {
-		$json = htmlspecialchars($data['get']['callback']).'('.json_encode(rt($data['server']['REMOTE_ADDR'])).')';
+	if(isset($_GET['act']) and $_GET['act'] == 'rt') {
+		$json = htmlspecialchars($_GET['callback']).'('.json_encode(rt($data['server']['REMOTE_ADDR'])).')';
 		$connection->send($json);
 	} elseif(strstr($data['server']['REQUEST_URI'], 'phpinfo')) {
 		$connection->send('<pre>'.`$bin_name -i`.'</pre>');
@@ -497,21 +539,75 @@ $http_worker->onMessage = function($connection, $data) {
 		$du = (float)$dt - (float)$df.get_format_level($dt); //已用
 		$hdPercent = round((float)$du / (float)$dt * 100 , 2);
 		
-		$strs = @file("/proc/net/dev"); 
 		$js = '';
 		$ajax = '';
-		for ($i=2; $i<count($strs);$i++) {
-			preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
-			$NetOutSpeed[$i] = $info[10][0];
-			$NetInputSpeed[$i] = $info[2][0];
-			$NetInput[$i] = formatsize($info[2][0]);
-			$NetOut[$i]  = formatsize($info[10][0]);
-			$ajax .= '$("#NetOut'.$i.'").html(dataJSON.NetOut'.$i.');'."\n";
-			$ajax .= '$("#NetInput'.$i.'").html(dataJSON.NetInput'.$i.');'."\n";
-			$ajax .= '$("#NetOutSpeed'.$i.'").html(ForDight((dataJSON.NetOutSpeed'.$i.'-OutSpeed'.$i.'),3));	OutSpeed'.$i.'=dataJSON.NetOutSpeed'.$i.';'."\n";
-			$ajax .= '$("#NetInputSpeed'.$i.'").html(ForDight((dataJSON.NetInputSpeed'.$i.'-InputSpeed'.$i.'),3));	InputSpeed'.$i.'=dataJSON.NetInputSpeed'.$i.';'."\n";
-			$js .= 'var OutSpeed'.$i.'='.$NetOutSpeed[$i].';'."\n";
-			$js .= 'var InputSpeed'.$i.'='.$NetInputSpeed[$i].';'."\n";
+		switch($os[0]) {
+			case 'Windows':
+				$netstat = windows_netstat_get();
+				$NetOut = formatsize_byte($netstat[2]);
+				$NetInput = formatsize_byte($netstat[1]);
+				$js = "var OutSpeed=$netstat[2];\nvar InputSpeed=$netstat[1];";
+				$ajax = "$(\"#NetOut\").html(dataJSON.NetOut);\n$(\"#NetInput\").html(dataJSON.NetInput);\n$(\"#NetOutSpeed\").html(ForDight((dataJSON.NetOutSpeed-OutSpeed),3));	OutSpeed=dataJSON.NetOutSpeed;\n$(\"#NetInputSpeed\").html(ForDight((dataJSON.NetInputSpeed-InputSpeed),3));	InputSpeed=dataJSON.NetInputSpeed;";
+				$network = "<table><tr><th colspan=\"5\">网络使用状况</th></tr><tr><td width=\"13%\">本地连接 : </td><td width=\"29%\">入网: <font color='#CC0000'><span id=\"NetInput\">$NetInput</span></font></td><td width=\"14%\">实时: <font color='#CC0000'><span id=\"NetInputSpeed\">0B/s</span></font></td><td width=\"29%\">出网: <font color='#CC0000'><span id=\"NetOut\">$NetOut</span></font></td><td width=\"14%\">实时: <font color='#CC0000'><span id=\"NetOutSpeed\">0B/s</span></font></td></tr></table>";
+			break;
+			default:
+				$strs = @file("/proc/net/dev"); 
+				for ($i=2; $i<count($strs);$i++) {
+					preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
+					$NetOutSpeed[$i] = $info[10][0];
+					$NetInputSpeed[$i] = $info[2][0];
+					$NetInput[$i] = formatsize($info[2][0]);
+					$NetOut[$i]  = formatsize($info[10][0]);
+					$ajax .= '$("#NetOut'.$i.'").html(dataJSON.NetOut'.$i.');'."\n";
+					$ajax .= '$("#NetInput'.$i.'").html(dataJSON.NetInput'.$i.');'."\n";
+					$ajax .= '$("#NetOutSpeed'.$i.'").html(ForDight((dataJSON.NetOutSpeed'.$i.'-OutSpeed'.$i.'),3));	OutSpeed'.$i.'=dataJSON.NetOutSpeed'.$i.';'."\n";
+					$ajax .= '$("#NetInputSpeed'.$i.'").html(ForDight((dataJSON.NetInputSpeed'.$i.'-InputSpeed'.$i.'),3));	InputSpeed'.$i.'=dataJSON.NetInputSpeed'.$i.';'."\n";
+					$js .= 'var OutSpeed'.$i.'='.$NetOutSpeed[$i].';'."\n";
+					$js .= 'var InputSpeed'.$i.'='.$NetInputSpeed[$i].';'."\n";
+				}
+				$network = "\n";
+				if (false !== ($strs = @file("/proc/net/dev"))) {
+					$network .= '<table>'."\n";
+					$network .= '<tr><th colspan="5">网络使用状况</th></tr>'."\n";
+					for ($i = 2; $i < count($strs); $i++ ) {
+					preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
+						$network .= '<tr>'."\n";
+						$network .= '<td width="13%">'.$info[1][0].' : </td>';
+						$network .= '<td width="29%">入网: <font color=\'#CC0000\'><span id="NetInput'.$i.'">'.$NetInput[$i].'</span></font></td>'."\n";
+						$network .= '<td width="14%">实时: <font color=\'#CC0000\'><span id="NetInputSpeed'.$i.'">0B/s</span></font></td>'."\n";
+						$network .= '<td width="29%">出网: <font color=\'#CC0000\'><span id="NetOut'.$i.'">'.$NetOut[$i].'</span></font></td>'."\n";
+						$network .= '<td width="14%">实时: <font color=\'#CC0000\'><span id="NetOutSpeed'.$i.'">0B/s</span></font></td>'."\n";
+						$network .= '</tr>'."\n";
+					}
+					$network .= '</table>'."\n\n";
+				}
+			break;
+		}
+		if($os[0] != 'Windows') {
+			$linuxajax = '	$("#UsedMemory").html(dataJSON.UsedMemory);
+	$("#FreeMemory").html(dataJSON.FreeMemory);
+	$("#CachedMemory").html(dataJSON.CachedMemory);
+	$("#Buffers").html(dataJSON.Buffers);
+	$("#TotalSwap").html(dataJSON.TotalSwap);
+	$("#swapUsed").html(dataJSON.swapUsed);
+	$("#swapFree").html(dataJSON.swapFree);
+	$("#swapPercent").html(dataJSON.swapPercent);
+	$("#loadAvg").html(dataJSON.loadAvg);
+	$("#uptime").html(dataJSON.uptime);
+	$("#freetime").html(dataJSON.freetime);
+	$("#stime").html(dataJSON.stime);
+	$("#memRealUsed").html(dataJSON.memRealUsed);
+	$("#memRealFree").html(dataJSON.memRealFree);
+	$("#memRealPercent").html(dataJSON.memRealPercent);
+	$("#memPercent").html(dataJSON.memPercent);
+	$("#barmemPercent").width(dataJSON.memPercent);
+	$("#barmemRealPercent").width(dataJSON.barmemRealPercent);
+	$("#memCachedPercent").html(dataJSON.memCachedPercent);
+	$("#barmemCachedPercent").width(dataJSON.barmemCachedPercent);
+	$("#barswapPercent").width(dataJSON.barswapPercent);
+	$("#corestat").html(dataJSON.corestat);';
+		} else {
+			$linuxajax = '';
 		}
 		$head = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">
 <html xmlns=\"http://www.w3.org/1999/xhtml\">
@@ -586,31 +682,7 @@ function ForDight(Dight,How)
 	$(\"#freeSpace\").html(dataJSON.freeSpace);
 	$(\"#hdPercent\").html(dataJSON.hdPercent);
 	$(\"#barhdPercent\").width(dataJSON.barhdPercent);
-	$(\"#UsedMemory\").html(dataJSON.UsedMemory);
-	$(\"#FreeMemory\").html(dataJSON.FreeMemory);
-	$(\"#CachedMemory\").html(dataJSON.CachedMemory);
-	$(\"#Buffers\").html(dataJSON.Buffers);
-	$(\"#TotalSwap\").html(dataJSON.TotalSwap);
-	$(\"#swapUsed\").html(dataJSON.swapUsed);
-	$(\"#swapFree\").html(dataJSON.swapFree);
-	$(\"#swapPercent\").html(dataJSON.swapPercent);
-	$(\"#loadAvg\").html(dataJSON.loadAvg);
-	$(\"#uptime\").html(dataJSON.uptime);
-	$(\"#freetime\").html(dataJSON.freetime);
-	$(\"#stime\").html(dataJSON.stime);
-	$(\"#memRealUsed\").html(dataJSON.memRealUsed);
-	$(\"#memRealFree\").html(dataJSON.memRealFree);
-	$(\"#memRealPercent\").html(dataJSON.memRealPercent);
-	$(\"#memPercent\").html(dataJSON.memPercent);
-	$(\"#barmemPercent\").width(dataJSON.memPercent);
-	$(\"#barmemRealPercent\").width(dataJSON.barmemRealPercent);
-	$(\"#memCachedPercent\").html(dataJSON.memCachedPercent);
-	$(\"#barmemCachedPercent\").width(dataJSON.barmemCachedPercent);
-	$(\"#barswapPercent\").width(dataJSON.barswapPercent);
-	$(\"#corestat\").html(dataJSON.corestat);
-	$(\"#online_num\").html(dataJSON.online_num);
-	
-".$ajax."
+".$linuxajax.$ajax."
 }
 </script>
 </head>
@@ -662,23 +734,6 @@ function ForDight(Dight,How)
 	$cookie = isset($_COOKIE) ? '<font color="green">√</font>' : '<font color="red">×</font>';
 	$smtp_enable = get_cfg_var("SMTP") ? '<font color="green">√</font>' : '<font color="red">×</font>';
 	$smtp_addr = get_cfg_var("SMTP") ? get_cfg_var("SMTP") : '<font color="red">×</font>';
-
-	$network = "\n";
-	if (false !== ($strs = @file("/proc/net/dev"))) {
-		$network .= '<table>'."\n";
-		$network .= '<tr><th colspan="5">网络使用状况</th></tr>'."\n";
-		for ($i = 2; $i < count($strs); $i++ ) {
-		preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
-			$network .= '<tr>'."\n";
-			$network .= '<td width="13%">'.$info[1][0].' : </td>';
-			$network .= '<td width="29%">入网: <font color=\'#CC0000\'><span id="NetInput'.$i.'">'.$NetInput[$i].'</span></font></td>'."\n";
-			$network .= '<td width="14%">实时: <font color=\'#CC0000\'><span id="NetInputSpeed'.$i.'">0B/s</span></font></td>'."\n";
-			$network .= '<td width="29%">出网: <font color=\'#CC0000\'><span id="NetOut'.$i.'">'.$NetOut[$i].'</span></font></td>'."\n";
-			$network .= '<td width="14%">实时: <font color=\'#CC0000\'><span id="NetOutSpeed'.$i.'">0B/s</span></font></td>'."\n";
-			$network .= '</tr>'."\n";
-		}
-		$network .= '</table>'."\n\n";
-	}
 	
 	if(extension_loaded('gd')) {
 		$gd_info = @gd_info();
