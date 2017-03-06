@@ -83,7 +83,8 @@ function cpuinfo() {
 			return $res;
 		} else { //busybox
 			$res['cpu_model']['0']['model'] = cpuinfo_get('cpuname') ? cpuinfo_get('cpuname') : dmesg_get_cpu_name();
-			$res['cpu_mhz']['0'] = dmesg_get_cpu_freq();
+			$res['cpu_mhz']['0'] = dmesg_get_cpu_freq_normal();
+			if(!$res['cpu_mhz']['0']) $res['cpu_mhz']['0'] = dmesg_get_cpu_freq_normal_mt7621();
 			$res['cpu_num'] = cpuinfo_get('cpu_num');
 			$res['cpu_bogomips']['0'] = cpuinfo_get('bogomips');
 			return $res;
@@ -119,7 +120,7 @@ function cpuinfo() {
 	}
 }
 
-function dmesg_get_cpu_freq() {
+function dmesg_get_cpu_freq_normal() {
 	$l_clock = array();
 	exec('dmesg | grep Clocks', $clocks, $errno);
 	if($errno > 0) return false;
@@ -141,6 +142,16 @@ function dmesg_get_cpu_freq() {
 	} else {
 		return false;
 	}
+}
+
+function dmesg_get_cpu_freq_normal_mt7621() {
+	$l_clock = array();
+	exec('dmesg | grep frequency', $frequency, $errno);
+	if($errno > 0) return false;
+	if(is_array($frequency)) $frequency = implode('', $frequency);
+	$tmp = explode(': ', $frequency);
+	$tmp = explode('/', $tmp[1]);
+	return is_numeric($tmp[0]) ? number_format($tmp[0], 3, '.', '') : false;
 }
 
 function dmesg_get_cpu_name() {
