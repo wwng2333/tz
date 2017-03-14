@@ -1,5 +1,14 @@
 # tz
-基于workerman的雅黑探针 部分功能支持FreeBSD和OpenWRT
+基于workerman的雅黑探针
+
+实用功能：
+| 系统   | 服务器实时数据 | 网络使用状况 |
+|--------|:-------------:| -----:|
+| Linux | √ | √ |
+|Windows| √ | 总流量 |
+|Freebsd| √ | × |
+|OpenWRT/LEDE| √ | √ |
+|Android| √ | √ |
 
 Usage:
 ```bash
