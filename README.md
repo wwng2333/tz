@@ -2,13 +2,7 @@
 基于workerman的雅黑探针
 
 实用功能：
-| 系统   | 服务器实时数据 | 网络使用状况 |
-|--------|:-------------:| -----:|
-| Linux | √ | √ |
-|Windows| √ | 总流量 |
-|Freebsd| √ | × |
-|OpenWRT/LEDE| √ | √ |
-|Android| √ | √ |
+<table><thead><tr><th>系统</th><th align="center">服务器实时数据</th><th align="right">网络使用状况</th></tr></thead><tbody><tr><td>Linux</td><td align="center">√</td><td align="right">√</td></tr><tr><td>Windows</td><td align="center">√</td><td align="right">总流量</td></tr><tr><td>Freebsd</td><td align="center">√</td><td align="right">×</td></tr><tr><td>OpenWRT/LEDE</td><td align="center">√</td><td align="right">√</td></tr><tr><td>Android</td><td align="center">√</td><td align="right">√</td></tr></tbody></table>
 
 Usage:
 ```bash
