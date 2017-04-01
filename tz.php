@@ -57,15 +57,12 @@ function Check_Third_Pard($name) {
 
 function get_key($keyName) {
 	exec("sysctl $keyName", $return, $errno);
-	$return = implode("\n", $return);
-	$return = str_replace($keyName.': ', '', $return);
+	$return = str_replace($keyName.': ', '', implode("\n", $return));
 	return ($errno > 0) ? false : $return;
 }
 
 function remove_spaces($input) {
-	while(strstr($input, '  ')) {
-		$input = str_replace('  ', ' ', $input);
-	}
+	while(strstr($input, '  ')) $input = str_replace('  ', ' ', $input);
 	return $input;
 }
 
@@ -73,9 +70,7 @@ function cpuinfo() {
 	global $os;
 	$os_real = explode(' ', php_uname());
 	$os_count = count($os_real) - 1;
-	$machine = $os_real[$os_count];
-	$arch_embedded = array('armv6l','armv7l','armv8l','mips','mipsel','aarch64');
-	if(in_array($machine, $arch_embedded)) {
+	if(in_array($os_real[$os_count], array('armv6l','armv7l','armv8l','mips','mipsel','aarch64'))) {
 		if(is_file('/system/build.prop')) { //Android
 			$res['cpu_model']['0']['model'] = cpuinfo_get('cpuname');
 			$res['cpu_mhz']['0'] = android_get_cpu_freq();
@@ -107,9 +102,7 @@ function cpuinfo() {
 				if(empty($model[1])) return false;
 				$res['cpu_num'] = count($model[1]);
 				$models = array();
-				foreach( array_count_values($model[1]) as $model_k => $model_v){
-					$models[] = array('model' => $model_k, 'total' => $model_v, 'key' => array_search($model_k,$model[1]));
-				}
+				foreach(array_count_values($model[1]) as $model_k => $model_v) $models[] = array('model' => $model_k, 'total' => $model_v, 'key' => array_search($model_k,$model[1]));
 				$res['cpu_model'] = $models;
 				$res['cpu_mhz'] = $mhz[1];
 				$res['cpu_cache'] = $cache[1];
@@ -130,8 +123,7 @@ function dmesg_get_cpu_freq_normal() {
 	$tmp = explode(',', $tmp[1]);
 	if(!isset($tmp[1])) return false;
 	for($i=0;$i<count($tmp);$i++) {
-		$piece_now = $tmp[$i];
-		$l_tmp = explode(':', $piece_now);
+		$l_tmp = explode(':', $tmp[$i]);
 		$k = strtolower($l_tmp[0]);
 		$v = $l_tmp[1];
 		$l_clock[$k] = $v;
@@ -355,13 +347,6 @@ function get_format_level($string) {
 function rt($client_ip) {
 	global $os;
 	$meminfo = meminfo();
-	$dt = formatsize(@disk_total_space(".")); //总
-	$df = formatsize(@disk_free_space(".")); //可用
-	$return['useSpace'] = (float)$dt - (float)$df.get_format_level($dt);
-	$return['freeSpace'] = (float)$df.get_format_level($df);
-	$return['hdPercent'] = (floatval($dt)!=0) ? round((float)$return['useSpace'] / (float)$dt * 100, 2) : 0;
-	$return['barhdPercent'] = $return['hdPercent'].'%';	
-	$return['stime'] = date('Y-m-d H:i:s');
 	
 	switch($os[0]) {
 		case 'Windows':
@@ -370,7 +355,6 @@ function rt($client_ip) {
 			$return['NetOutSpeed'] = $netstat[2] / 8;
 			$return['NetInput'] = formatsize_byte($netstat[1]);
 			$return['NetOut'] = formatsize_byte($netstat[2]);
-			return $return;
 		break;
 		default:
 			$strs = @file("/proc/net/dev"); 
@@ -421,8 +405,17 @@ function rt($client_ip) {
 				}
 			}
 			$return['online_num'] = count_online_num(time(), $client_ip);
-			return $return;
 	}
+	
+	$dt = formatsize(@disk_total_space(".")); //总
+	$df = formatsize(@disk_free_space(".")); //可用
+	$return['useSpace'] = (float)$dt - (float)$df.get_format_level($dt);
+	$return['freeSpace'] = (float)$df.get_format_level($df);
+	$return['hdPercent'] = (floatval($dt)!=0) ? round((float)$return['useSpace'] / (float)$dt * 100, 2) : 0;
+	$return['barhdPercent'] = $return['hdPercent'].'%';	
+	$return['stime'] = date('Y-m-d H:i:s');
+	
+	return $return;
 }
 
 function GetCoreInformation() {
