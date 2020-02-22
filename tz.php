@@ -357,15 +357,7 @@ function rt($client_ip) {
 			$return['NetOut'] = formatsize_byte($netstat[2]);
 		break;
 		default:
-			$strs = @file("/proc/net/dev"); 
-			for($i=2; $i < count($strs); $i++ ) {
-				preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
-				$NetOutSpeed[$i] = $info[10][0];
-				$NetInputSpeed[$i] = $info[2][0];
-				$NetInput[$i] = formatsize($info[2][0]);
-				$NetOut[$i]  = formatsize($info[10][0]);
-			}
-			$return = array();
+			$return = [];
 			$return['TotalMemory'] = formatsize($meminfo['MemTotal'], 1);
 			$return['UsedMemory'] = formatsize($meminfo['MemTotal'] - $meminfo['MemFree'], 1);
 			$return['FreeMemory'] = formatsize($meminfo['MemFree'], 1);
@@ -396,15 +388,13 @@ function rt($client_ip) {
 				$return['swapPercent'] = false;
 			}
 			$return['corestat'] = corestat();
-			for($x=2;$x<=count($strs);$x++) {
-				if(isset($NetOut[$x])) {
-					$return['NetOut'.$x] = $NetOut[$x];
-					$return['NetInput'.$x] = $NetInput[$x];
-					$return['NetOutSpeed'.$x] = $NetOutSpeed[$x];
-					$return['NetInputSpeed'.$x] = $NetInputSpeed[$x];
-				}
-			}
 			$return['online_num'] = count_online_num(time(), $client_ip);
+			
+			$net = net();
+			foreach($net as $interface => $net_now)
+			{
+				$return = array_merge($return, net_json_array_generate($interface, $net_now));
+			}
 	}
 	
 	$dt = formatsize(@disk_total_space(".")); //总
@@ -494,8 +484,73 @@ function windows_netstat_get() {
 	}
 }
 
+function net()
+{
+	$net = file("/proc/net/dev");
+	$netcount = count($net);
+	for($i=2;$i<$netcount;$i++)
+	{
+		$arrnow = explode(': ', net_clean($net[$i]));
+		$name = $arrnow[0];
+		$result[$name] = [];
+		$tmp = explode(' ', $arrnow[1]);
+		$result[$name]['in'] = $tmp[0];
+		$result[$name]['out'] = $tmp[8];
+		//var_dump($result[$name]);
+	}
+
+	asort($result); //从低到高排序
+	//var_dump($result);
+	return $result;
+}
+
+function net_clean($input)
+{
+	while(strstr($input, '  ')) $input = str_replace('  ', ' ', $input);
+	return trim($input);
+}
+
+function net_ajax_generate($net_now)
+{
+	global $ajax;
+	if(!isset($ajax)) $ajax = '';
+	$ajax .= sprintf('$("#NetOut%s").html(dataJSON.NetOut%s);'."\n", $net_now, $net_now);
+	$ajax .= sprintf('$("#NetInput%s").html(dataJSON.NetInput%s);'."\n", $net_now, $net_now);
+	$ajax .= sprintf('$("#NetOutSpeed%s").html(ForDight((dataJSON.NetOutSpeed%s-OutSpeed%s),3)); OutSpeed%s=dataJSON.NetOutSpeed%s;'."\n", $net_now, $net_now, $net_now, $net_now, $net_now);
+	$ajax .= sprintf('$("#NetInputSpeed%s").html(ForDight((dataJSON.NetInputSpeed%s-InputSpeed%s),3)); InputSpeed%s=dataJSON.NetInputSpeed%s;'."\n", $net_now, $net_now, $net_now, $net_now, $net_now);
+}
+
+function net_js_generate($interface, $detail)
+{
+	global $js, $titleajax;
+	if(!isset($js)) $js = '';
+	$js .= sprintf('var OutSpeed%s=%s;'."\n", $interface, $detail['out']);
+	$js .= sprintf('var InputSpeed%s=%s;'."\n", $interface, $detail['in']);
+	$titleajax = sprintf('$(\'title\').html(ForDight((dataJSON.NetInputSpeed%s-InputSpeed%s),3));'."\n", $interface, $interface);
+}
+
+function network_generate($interface, $detail)
+{
+	global $network;
+	if(!isset($network) or !strstr($network, '<table>')) $network = "<table>\n<tr><th colspan=\"5\">网络使用状况</th></tr>\n<tr>\n";
+	$network .= sprintf('<td width="13%%">%s : </td><td width="29%%">入网: <font color=\'#CC0000\'><span id="NetInput%s">%s</span></font></td>'."\n", $interface, $interface, formatsize($detail['in']));
+	$network .= sprintf('<td width="14%%">实时: <font color=\'#CC0000\'><span id="NetInputSpeed%s">0B/s</span></font></td>'."\n", $interface);
+	$network .= sprintf('<td width="29%%">出网: <font color=\'#CC0000\'><span id="NetOut%s">%s</span></font></td>'."\n", $interface, formatsize($detail['in']));
+	$network .= sprintf('<td width="14%%">实时: <font color=\'#CC0000\'><span id="NetOutSpeed%s">0B/s</span></font></td>'."\n".'</tr>'."\n", $interface);
+}
+
+function net_json_array_generate($interface, $detail)
+{
+	$return = [];
+	$return['NetOut'.$interface] = formatsize($detail['out']);
+	$return['NetInput'.$interface] = formatsize($detail['in']);
+	$return['NetOutSpeed'.$interface] = $detail['out'];
+	$return['NetInputSpeed'.$interface] = $detail['in'];
+	return $return;
+}
+
 $http_worker->onMessage = function($connection, $data) {
-	global $os,$bin_name;
+	global $os, $bin_name, $js, $network, $ajax, $titleajax;
 	#echo json_encode($data)."\n";
 	if(isset($_GET['act'])) {
 		switch($_GET['act']) {
@@ -530,7 +585,7 @@ $http_worker->onMessage = function($connection, $data) {
 
 		$redis_support = in_array('redis', $get_loaded_extensions) ? '<font color="green">√</font>' : '<font color="red">×</font>';
 
-		if('/'==DIRECTORY_SEPARATOR) {
+		if('/' == DIRECTORY_SEPARATOR) {
 			$kernel = $os[2];
 			$hostname = $os[1];
 			} else {
@@ -545,6 +600,7 @@ $http_worker->onMessage = function($connection, $data) {
 		
 		$js = '';
 		$ajax = '';
+		$network = '';
 		switch($os[0]) {
 			case 'Windows':
 				$netstat = windows_netstat_get();
@@ -555,36 +611,15 @@ $http_worker->onMessage = function($connection, $data) {
 				$network = "<table><tr><th colspan=\"5\">网络使用状况</th></tr><tr><td width=\"13%\">本地连接 : </td><td width=\"29%\">入网: <font color='#CC0000'><span id=\"NetInput\">$NetInput</span></font></td><td width=\"14%\">实时: <font color='#CC0000'><span id=\"NetInputSpeed\">0B/s</span></font></td><td width=\"29%\">出网: <font color='#CC0000'><span id=\"NetOut\">$NetOut</span></font></td><td width=\"14%\">实时: <font color='#CC0000'><span id=\"NetOutSpeed\">0B/s</span></font></td></tr></table>";
 			break;
 			default:
-				$strs = @file("/proc/net/dev"); 
-				for ($i=2; $i<count($strs);$i++) {
-					preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
-					$NetOutSpeed[$i] = $info[10][0];
-					$NetInputSpeed[$i] = $info[2][0];
-					$NetInput[$i] = formatsize($info[2][0]);
-					$NetOut[$i]  = formatsize($info[10][0]);
-					$ajax .= '$("#NetOut'.$i.'").html(dataJSON.NetOut'.$i.');'."\n";
-					$ajax .= '$("#NetInput'.$i.'").html(dataJSON.NetInput'.$i.');'."\n";
-					$ajax .= '$("#NetOutSpeed'.$i.'").html(ForDight((dataJSON.NetOutSpeed'.$i.'-OutSpeed'.$i.'),3));	OutSpeed'.$i.'=dataJSON.NetOutSpeed'.$i.';'."\n";
-					$ajax .= '$("#NetInputSpeed'.$i.'").html(ForDight((dataJSON.NetInputSpeed'.$i.'-InputSpeed'.$i.'),3));	InputSpeed'.$i.'=dataJSON.NetInputSpeed'.$i.';'."\n";
-					$js .= 'var OutSpeed'.$i.'='.$NetOutSpeed[$i].';'."\n";
-					$js .= 'var InputSpeed'.$i.'='.$NetInputSpeed[$i].';'."\n";
+				$net = net();
+
+				foreach($net as $interface => $net_now)
+				{
+					net_ajax_generate($interface);
+					net_js_generate($interface, $net_now);
+					network_generate($interface, $net_now);
 				}
-				$network = "\n";
-				if (false !== ($strs = @file("/proc/net/dev"))) {
-					$network .= '<table>'."\n";
-					$network .= '<tr><th colspan="5">网络使用状况</th></tr>'."\n";
-					for ($i = 2; $i < count($strs); $i++ ) {
-					preg_match_all( "/([^\s]+):[\s]{0,}(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)/", $strs[$i], $info );
-						$network .= '<tr>'."\n";
-						$network .= '<td width="13%">'.$info[1][0].' : </td>';
-						$network .= '<td width="29%">入网: <font color=\'#CC0000\'><span id="NetInput'.$i.'">'.$NetInput[$i].'</span></font></td>'."\n";
-						$network .= '<td width="14%">实时: <font color=\'#CC0000\'><span id="NetInputSpeed'.$i.'">0B/s</span></font></td>'."\n";
-						$network .= '<td width="29%">出网: <font color=\'#CC0000\'><span id="NetOut'.$i.'">'.$NetOut[$i].'</span></font></td>'."\n";
-						$network .= '<td width="14%">实时: <font color=\'#CC0000\'><span id="NetOutSpeed'.$i.'">0B/s</span></font></td>'."\n";
-						$network .= '</tr>'."\n";
-					}
-					$network .= '</table>'."\n\n";
-				}
+				$network .= "</table>\n";
 			break;
 		}
 		if($os[0] != 'Windows') {
@@ -609,14 +644,14 @@ $http_worker->onMessage = function($connection, $data) {
 	$("#memCachedPercent").html(dataJSON.memCachedPercent);
 	$("#barmemCachedPercent").width(dataJSON.barmemCachedPercent);
 	$("#barswapPercent").width(dataJSON.barswapPercent);
-	$("#corestat").html(dataJSON.corestat);';
+	$("#corestat").html(dataJSON.corestat);'."\n";
 		} else {
 			$linuxajax = '';
 		}
 		$head = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">
 <html xmlns=\"http://www.w3.org/1999/xhtml\">
 <head>
-<title>雅黑PHP探针[简体版]v0.4.7</title>
+<title>雅黑PHP探针[Workerman版]v0.4.7</title>
 <meta http-equiv=\"X-UA-Compatible\" content=\"IE=EmulateIE7\" />
 <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\" />
 <!-- Powered by: Yahei.Net -->
@@ -642,7 +677,7 @@ function caola_test(server_test) {
 					//$('#'+server_test).text(parseFloat(data).toFixed(6) + ' 秒');
 					$('#'+server_test).text(data + ' 秒');
 				}
-			}else{
+			} else {
 				var time2 = new Date().getTime();
 				var all_time = (time2-time1)/1000; //耗时毫秒单位转为秒
 				var my_mb = ((1000/all_time) * 8) / 102.4;
@@ -686,7 +721,7 @@ function ForDight(Dight,How)
 	$(\"#freeSpace\").html(dataJSON.freeSpace);
 	$(\"#hdPercent\").html(dataJSON.hdPercent);
 	$(\"#barhdPercent\").width(dataJSON.barhdPercent);
-".$linuxajax.$ajax."
+".$titleajax.$linuxajax.$ajax."
 }
 </script>
 </head>
@@ -1145,7 +1180,7 @@ function ForDight(Dight,How)
 
 <table>
 		<tr>
-			<td class="w_foot"><A HREF="http://www.Yahei.Net" target="_blank">雅黑PHP探针[简体版]v0.4.7</A></td>
+			<td class="w_foot"><A HREF="http://www.Yahei.Net" target="_blank">雅黑PHP探针[Workerman版]v0.4.7</A></td>
 			<td class="w_foot">Processed in '.(microtime(true) - $time_start).' seconds. '.round(memory_get_usage()/1024/1024, 2).'MB memory usage.</td>
 			<td class="w_foot"><a href="#w_top">返回顶部</a></td>
 		</tr>
