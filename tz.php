@@ -526,7 +526,7 @@ function net_js_generate($interface, $detail)
 	if(!isset($js)) $js = '';
 	$js .= sprintf('var OutSpeed%s=%s;'."\n", $interface, $detail['out']);
 	$js .= sprintf('var InputSpeed%s=%s;'."\n", $interface, $detail['in']);
-	$titleajax = sprintf('$(\'title\').html(ForDight((dataJSON.NetInputSpeed%s-InputSpeed%s),3));'."\n", $interface, $interface);
+	$titleajax = sprintf('$(\'title\').html(ForDight((dataJSON.NetOutSpeed%s-OutSpeed%s),3));'."\n", $interface, $interface);
 }
 
 function network_generate($interface, $detail)
