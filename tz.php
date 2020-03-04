@@ -20,7 +20,7 @@ use Workerman\Worker;
 $http_worker = new Worker("http://0.0.0.0:2345");
 $http_worker->name = 'Proberv';
 $http_worker->user = 'root';
-$http_worker->count = 3;
+$http_worker->count = 1;
 
 function writeover($filename, $data, $method = 'w', $chmod = 0) {
 	$handle = fopen($filename, $method);
@@ -35,18 +35,22 @@ function writeover($filename, $data, $method = 'w', $chmod = 0) {
 function count_online_num($time, $ip) {
 	if($ip != '') {
 		$fileCount = sys_get_temp_dir().'/online.json';
-		$gap = 60; //一分钟
+		$gap = 30;
 		if (!file_exists($fileCount)) {
 			$arr[$ip] = $time;
 			writeover($fileCount, json_encode($arr), 'w', 1);
 			return 1;
 		} else {
 			$json = file_get_contents($fileCount);
-			$arr = json_decode($json,true);
+			$arr = json_decode($json, true);
 			$arr[$ip] = $time;
-			foreach($arr as $a_ip => $a_time) if($time - $a_time > $gap) unset($arr[$a_ip]);
+			foreach($arr as $ip_cache => $time_cache)
+			{
+				if(($time - $time_cache) > $gap) unset($arr[$ip_cache]);
+			}
 			writeover($fileCount, json_encode($arr), 'w', 1);
 		}
+		//var_dump(count($arr));
 		return count($arr);
 	}
 }
@@ -372,7 +376,7 @@ function rt($client_ip) {
 			$hour = floor(($cached_uptime % 86400) / 3600).'小时';
 			$min = floor(($cached_uptime % 3600) / 60).'分钟';
 			$sec = floor($cached_uptime % 60).'秒';
-			$return['uptime'] = $day.$hour.$min.$sec;
+			$return['uptime'] = sprintf('%s%s%s%s', $day, $hour, $min, $sec);
 			$return['memRealUsed'] = formatsize($meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Cached'] - $meminfo['Buffers'], 1);
 			$return['memRealFree'] = formatsize($meminfo['MemFree'] + $meminfo['Cached'] + $meminfo['Buffers'], 1);
 			$return['memRealPercent'] = round(($meminfo['MemTotal'] - $meminfo['MemFree'] - $meminfo['Cached'] - $meminfo['Buffers']) / $meminfo['MemTotal'] * 100, 2);
@@ -447,7 +451,7 @@ function corestat() {
 	sleep(1);
 	$stat2 = GetCoreInformation();
 	$data = GetCpuPercentages($stat1, $stat2);
-	return $data['cpu0']['user']."%us,  ".$data['cpu0']['sys']."%sy,  ".$data['cpu0']['nice']."%ni, ".$data['cpu0']['idle']."%id,  ".$data['cpu0']['iowait']."%wa,  ".$data['cpu0']['irq']."%irq,  ".$data['cpu0']['softirq']."%softirq";
+	return sprintf('%s%%us, %s%%sy, %s%%ni, %s%%id, %s%%wa, %s%%irq, %s%%softirq', $data['cpu0']['user'], $data['cpu0']['sys'], $data['cpu0']['nice'], $data['cpu0']['idle'], $data['cpu0']['iowait'], $data['cpu0']['irq'], $data['cpu0']['softirq']);
 }
 
 function svr_test_result($provider, $int_result, $float_result, $io_result, $cpu_num, $cpu_name, $cpu_freq) {
@@ -573,7 +577,7 @@ $http_worker->onMessage = function($connection, $data) {
 	} elseif(strstr($data['server']['REQUEST_URI'], 'phpinfo')) {
 		$connection->send('<pre>'.`$bin_name -i`.'</pre>');
 	} elseif(strstr($data['server']['REQUEST_URI'], 'functions')) {
-		$cmd = $bin_name.' -r "print_r(get_defined_functions());"';
+		$cmd = sprintf('%s -r "print_r(get_defined_functions());"', $bin_name);
 		exec($cmd, $result);
 		$result = implode("\n", $result);
 		$functions = '<pre>'.$result.'</pre>';
@@ -593,10 +597,12 @@ $http_worker->onMessage = function($connection, $data) {
 			$hostname = $os[2];
 		}
 		
-		$dt = formatsize(@disk_total_space(".")); //总
-		$df = formatsize(@disk_free_space(".")); //可用
-		$du = (float)$dt - (float)$df.get_format_level($dt); //已用
-		$hdPercent = round((float)$du / (float)$dt * 100 , 2);
+		$disk_total = @disk_total_space(".");
+		$disk_free = @disk_free_space(".");
+		$dt = formatsize($disk_total);
+		$df = formatsize($disk_free);
+		$du = formatsize($disk_total - $disk_free);
+		$hdPercent = (floatval($disk_total)!=0) ? round((float)($disk_total - $disk_free) / (float)$disk_total * 100, 2) : 0;
 		
 		$js = '';
 		$ajax = '';
@@ -672,19 +678,9 @@ function caola_test(server_test) {
 			time1 = new Date().getTime();
 		},
 		success: function(data) {
-			if(server_test != 'netspeed_test'){
-				if(data){
+			if(data){
 					//$('#'+server_test).text(parseFloat(data).toFixed(6) + ' 秒');
 					$('#'+server_test).text(data + ' 秒');
-				}
-			} else {
-				var time2 = new Date().getTime();
-				var all_time = (time2-time1)/1000; //耗时毫秒单位转为秒
-				var my_mb = ((1000/all_time) * 8) / 102.4;
-				var mynetspeed = '下载1000KB数据用时 <font color=\"#cc0000\">'+ all_time.toString() +'</font> 秒，下载速度：<font color=\"#cc0000\">'+ (1000/all_time).toFixed(2).toString() + '</font> kb/s，需测试多次取平均值，超过10M直接看下载速度';
-				$('#'+server_test).html(mynetspeed);
-				$('#network_speed').css('width', ((my_mb >= 100) ? '100' : my_mb) + '%');
-				$('#network_speed span').text((my_mb/10).toFixed(2) + 'M / 10M');
 			}
 		}
 	});
@@ -721,6 +717,7 @@ function ForDight(Dight,How)
 	$(\"#freeSpace\").html(dataJSON.freeSpace);
 	$(\"#hdPercent\").html(dataJSON.hdPercent);
 	$(\"#barhdPercent\").width(dataJSON.barhdPercent);
+	$(\"#online_num\").html(dataJSON.online_num);
 ".$titleajax.$linuxajax.$ajax."
 }
 </script>
@@ -755,7 +752,7 @@ function ForDight(Dight,How)
 	$hour = floor(($cached_uptime % 86400) / 3600).'小时';
 	$min = floor(($cached_uptime % 3600) / 60).'分钟';
 	$sec = floor($cached_uptime % 60).'秒';
-	$uptime = $day.$hour.$min.$sec;
+	$uptime = sprintf('%s%s%s%s', $day, $hour, $min, $sec);
 	
 	$disFuns = get_cfg_var("disable_functions");
 	if(empty($disFuns))	{
@@ -839,11 +836,11 @@ function ForDight(Dight,How)
   <tr>
 		<td>服务器主机名</td>
 		<td>'.$hostname.'</td>
-		<td>绝对路径</td>
+		<td>启动路径</td>
 		<td>'.getcwd().'</td>
 	</tr>
   <tr>
-		<td>当前在线人数</td>
+		<td>当前在线IP数</td>
 		<td><span id="online_num">1</span></td>
 		<td>探针路径</td>
 		<td>'.str_replace('\\', '/', __FILE__).'</td>
