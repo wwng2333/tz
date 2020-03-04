@@ -401,7 +401,7 @@ function rt($client_ip) {
 	$disk_free = @disk_free_space(".");
 	$return['useSpace'] = formatsize($disk_total - $disk_free);
 	$return['freeSpace'] = formatsize($disk_free);
-	$return['hdPercent'] = (floatval($disk_total)!=0) ? round((float)$disk_total - $disk_free / (float)$disk_total * 100, 2) : 0;
+	$return['hdPercent'] = (floatval($disk_total)!=0) ? round((float)($disk_total - $disk_free) / (float)$disk_total * 100, 2) : 0;
 	$return['barhdPercent'] = $return['hdPercent'].'%';	
 	$return['stime'] = date('Y-m-d H:i:s');
 	
