@@ -397,11 +397,11 @@ function rt($client_ip) {
 			}
 	}
 	
-	$dt = formatsize(@disk_total_space(".")); //总
-	$df = formatsize(@disk_free_space(".")); //可用
-	$return['useSpace'] = (float)$dt - (float)$df.get_format_level($dt);
-	$return['freeSpace'] = (float)$df.get_format_level($df);
-	$return['hdPercent'] = (floatval($dt)!=0) ? round((float)$return['useSpace'] / (float)$dt * 100, 2) : 0;
+	$disk_total = @disk_total_space(".");
+	$disk_free = @disk_free_space(".");
+	$return['useSpace'] = formatsize($disk_total - $disk_free);
+	$return['freeSpace'] = formatsize($disk_free);
+	$return['hdPercent'] = (floatval($disk_total)!=0) ? round((float)$disk_total - $disk_free / (float)$disk_total * 100, 2) : 0;
 	$return['barhdPercent'] = $return['hdPercent'].'%';	
 	$return['stime'] = date('Y-m-d H:i:s');
 	
