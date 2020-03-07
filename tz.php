@@ -553,6 +553,20 @@ function net_json_array_generate($interface, $detail)
 	return $return;
 }
 
+function tcp_available_congestion_control_get()
+{
+	exec('sysctl net.ipv4.tcp_available_congestion_control', $result);
+	$result = explode(' = ', $result[0]);
+	return explode(' ', trim($result[1]));
+}
+
+function tcp_congestion_control_get()
+{
+	exec('sysctl net.ipv4.tcp_congestion_control', $result);
+	$result = explode(' = ', $result[0]);
+	return trim($result[1]);
+}
+
 $http_worker->onMessage = function($connection, $data) {
 	global $os, $bin_name, $js, $network, $ajax, $titleajax;
 	#echo json_encode($data)."\n";
@@ -838,13 +852,19 @@ function ForDight(Dight,How)
 		<td>'.$hostname.'</td>
 		<td>启动路径</td>
 		<td>'.getcwd().'</td>
-	</tr>
+  </tr>
   <tr>
 		<td>当前在线IP数</td>
 		<td><span id="online_num">1</span></td>
 		<td>探针路径</td>
 		<td>'.str_replace('\\', '/', __FILE__).'</td>
-	</tr>
+  </tr>
+  <tr>
+		<td>TCP可用拥塞算法</td>
+		<td>'.implode(' ', tcp_available_congestion_control_get()).'</td>
+		<td>TCP当前拥塞算法</td>
+		<td>'.tcp_congestion_control_get().'</td>
+  </tr>
 </table>
 
 <table>
