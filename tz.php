@@ -567,6 +567,19 @@ function tcp_congestion_control_get()
 	return trim($result[1]);
 }
 
+function vnstat_get()
+{
+	if(is_readable('/usr/bin/vnstat'))
+	{
+		exec('vnstat -d', $result);
+		$header = "<table width=\"100%%\" cellpadding=\"3\" cellspacing=\"0\" align=\"center\">\n<tr>\n<th colspan=\"4\">vnstat</th>\n</tr>\n<tr>\n<td colspan=\"4\"><span class=\"w_small\">";
+		$footer = "</span></td>\n</tr>\n</table>";
+		$content = str_replace(' ', '&nbsp;', trim(implode('<br>', $result)));
+		return $header.$content.$footer;
+	}
+	return false;
+}
+
 $http_worker->onMessage = function($connection, $data) {
 	global $os, $bin_name, $js, $network, $ajax, $titleajax;
 	#echo json_encode($data)."\n";
@@ -923,7 +936,7 @@ function ForDight(Dight,How)
 	</tr>
 </table>
 
-'.$network._get_workerman_status().'
+'.$network._get_workerman_status().vnstat_get().'
 
 <table width="100%" cellpadding="3" cellspacing="0" align="center">
   <tr>
