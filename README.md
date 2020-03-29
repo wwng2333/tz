@@ -5,6 +5,12 @@
 
 Usage:
 ```bash
+apt-get install curl php5-cli php5-json git # Debian 8.11
+php -r "copy('https://getcomposer.org/installer', '/tmp/composer-setup.php');"
+php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
+```
+
+```bash
 apt install php7.2-cli php7.2-json composer git -y #Ubuntu 18.04
 git clone https://github.com/wwng2333/tz.git
 cd tz
