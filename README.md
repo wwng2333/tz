@@ -5,7 +5,7 @@
 
 Usage:
 ```bash
-apt install php7.2-cli php7.2-json composer git -y // Ubuntu 18.04
+apt install php7.2-cli php7.2-json composer git -y #Ubuntu 18.04
 git clone https://github.com/wwng2333/tz.git
 cd tz
 composer install
