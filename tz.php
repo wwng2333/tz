@@ -495,16 +495,14 @@ function net()
 	for($i=2;$i<$netcount;$i++)
 	{
 		$arrnow = explode(': ', net_clean($net[$i]));
-		$name = $arrnow[0];
+		$name = str_replace('.', '', $arrnow[0]);
 		$result[$name] = [];
 		$tmp = explode(' ', $arrnow[1]);
 		$result[$name]['in'] = $tmp[0];
 		$result[$name]['out'] = $tmp[8];
-		//var_dump($result[$name]);
 	}
 
 	asort($result); //从低到高排序
-	//var_dump($result);
 	return $result;
 }
 
@@ -555,7 +553,8 @@ function net_json_array_generate($interface, $detail)
 
 function tcp_available_congestion_control_get()
 {
-	exec('sysctl net.ipv4.tcp_available_congestion_control', $result);
+	exec('sysctl net.ipv4.tcp_available_congestion_control', $result, $errno);
+	if($errno != 0) return '-1';
 	$result = explode(' = ', $result[0]);
 	return explode(' ', trim($result[1]));
 }
@@ -1192,12 +1191,11 @@ function ForDight(Dight,How)
 		<td width="17%">数据I/O能力检测<br />(读取10K文件1万次)</td>
 		<td width="30%">CPU信息</td>
 	  </tr>'.
-	  svr_test_result('美国 LinodeVPS', 0.357, 0.802, 0.023, 4, 'Xeon L5520', 2.27).
-	  svr_test_result('美国 PhotonVPS.com', 0.431, 1.024, 0.034, 4, 'Xeon E5520', 2.27).
-	  svr_test_result('德国 SpaceRich.com', 0.421, 1.003, 0.038, 2, 'Core i7 920', 2.67).
-	  svr_test_result('美国 RiZie.com', 0.521, 1.559, 0.054, 1, 'Pentium4', 3.00).
-	  svr_test_result('埃及 CitynetHost.com', 0.343, 0.761, 0.023, 2, 'Core2Duo E4600', 2.40).
-	  svr_test_result('美国 IXwebhosting.com', 0.535, 1.607, 0.058, 4, 'Xeon E5530', 2.40).
+	  svr_test_result('Feral.io', 0.053, 0.114, 0.038, 24, 'Intel Xeon E5-2630L', 2.3).
+	  svr_test_result('Cloud.tencent.com', 0.028, 0.047, 0.027, 2, 'Intel Xeon Gold 6133', 2.5).
+	  svr_test_result('Bandwagonhost.com', 0.044, 0.076, 0.044, 2, 'Unknown QEMU Virtual CPU', 2.7).
+	  svr_test_result('Cubecloud.net', 0.037, 0.062, 0.043, 2, 'Intel Xeon E5-2690', 2.9).
+	  svr_test_result('作者的NAS', 0.016, 0.032, 0.031, 12, 'Intel Core i7-8850H', 3.5).
 	  '
 	  <tr align="center">
 		<td>本台服务器</td>
@@ -1220,7 +1218,7 @@ function ForDight(Dight,How)
 </body>
 </html>
 	';
-		$connection->send($test);
+		$connection->close($test);
 	}
 };
 
