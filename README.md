@@ -3,15 +3,26 @@
 实用功能：
 <table><thead><tr><th>系统</th><th align="center">服务器实时数据</th><th align="right">网络使用状况</th></tr></thead><tbody><tr><td>Linux</td><td align="center">√</td><td align="right">√</td></tr><tr><td>Windows</td><td align="center">√</td><td align="right">总流量</td></tr><tr><td>Freebsd</td><td align="center">√</td><td align="right">×</td></tr><tr><td>OpenWRT/LEDE</td><td align="center">√</td><td align="right">√</td></tr><tr><td>Android</td><td align="center">√</td><td align="right">√</td></tr></tbody></table>
 
-Usage:
+# install requirement
+Ubuntu 20.04:
+```
+apt update
+apt install php7.4-cli php7.4-curl composer -y
+```
+Fedora 37:
+```
+dnf update
+dnf install php-cli php-json composer
+```
+Debian 8.11:
 ```bash
 apt-get install curl php5-cli php5-json git # Debian 8.11
 php -r "copy('https://getcomposer.org/installer', '/tmp/composer-setup.php');"
 php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
 ```
-
+Ubuntu 18.04：
 ```bash
-apt install php7.2-cli php7.2-json composer git -y #Ubuntu 18.04
+apt install php7.2-cli php7.2-json composer git -y #
 git clone https://github.com/wwng2333/tz.git
 cd tz
 composer install
