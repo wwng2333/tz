@@ -14,6 +14,10 @@ Fedora 37:
 dnf update
 dnf install php-cli php-json composer
 ```
+Debian 11:
+```bash
+apt-get install php7.4-cli composer git
+```
 Debian 8.11:
 ```bash
 apt-get install curl php5-cli php5-json git # Debian 8.11
