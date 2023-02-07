@@ -1193,6 +1193,7 @@ function ForDight(Dight,How)
 	  </tr>'.
 	  svr_test_result('Feral.io', 0.053, 0.114, 0.038, 24, 'Intel Xeon E5-2630L', 2.3).
 	  svr_test_result('Cloud.tencent.com', 0.028, 0.047, 0.027, 2, 'Intel Xeon Gold 6133', 2.5).
+	  svr_test_result('Aliyun.com', 0.028, 0.049, 0.029, 1, 'Intel Xeon Platinum 8269CY', 2.5).
 	  svr_test_result('Bandwagonhost.com', 0.044, 0.076, 0.044, 2, 'Unknown QEMU Virtual CPU', 2.7).
 	  svr_test_result('Cubecloud.net', 0.037, 0.062, 0.043, 2, 'Intel Xeon E5-2690', 2.9).
 	  svr_test_result('作者的NAS', 0.016, 0.032, 0.031, 12, 'Intel Core i7-8850H', 3.5).
