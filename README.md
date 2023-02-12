@@ -1,3 +1,4 @@
+# Waring: Not support PHP 8.x due to workerman 3.x version not support it.
 # 基于workerman的雅黑探针
 
 实用功能：
