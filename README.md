@@ -8,7 +8,7 @@
 Alpine Linux 3.18:
 ```bash
 apk update
-apk add git composer php7 php7-posix php7-pcntl php7-session
+apk add git composer php7 php7-posix php7-pcntl php7-session php7-json
 ```
 Ubuntu 20.04:
 ```bash
