@@ -4,17 +4,18 @@
 <table><thead><tr><th>系统</th><th align="center">服务器实时数据</th><th align="right">网络使用状况</th></tr></thead><tbody><tr><td>Linux</td><td align="center">√</td><td align="right">√</td></tr><tr><td>Windows</td><td align="center">√</td><td align="right">总流量</td></tr><tr><td>Freebsd</td><td align="center">√</td><td align="right">×</td></tr><tr><td>OpenWRT/LEDE</td><td align="center">√</td><td align="right">√</td></tr><tr><td>Android</td><td align="center">√</td><td align="right">√</td></tr></tbody></table>
 
 # install requirement
-```Alpine Linux 3.18
+Alpine Linux 3.18:
+```bash
 apk update
 apk add git composer php81-cli php81-posix php81-pcntl
 ```
 Ubuntu 20.04:
-```
+```bash
 apt update
 apt install php7.4-cli php7.4-curl composer -y
 ```
 Fedora 37:
-```
+```bash
 dnf update
 dnf install php-cli php-json composer
 ```
