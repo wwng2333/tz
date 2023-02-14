@@ -22,10 +22,12 @@ dnf install php-cli php-json composer
 ```
 Debian 11:
 ```bash
+apt update
 apt-get install php7.4-cli composer git
 ```
 Debian 8.11:
 ```bash
+apt update
 apt-get install curl php5-cli php5-json git # Debian 8.11
 php -r "copy('https://getcomposer.org/installer', '/tmp/composer-setup.php');"
 php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
@@ -33,6 +35,9 @@ php /tmp/composer-setup.php --install-dir=/usr/local/bin --filename=composer
 Ubuntu 18.04：
 ```bash
 apt install php7.2-cli php7.2-json composer git -y #
+```
+Then do:
+```
 git clone https://github.com/wwng2333/tz.git
 cd tz
 composer install
